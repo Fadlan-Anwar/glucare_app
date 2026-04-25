@@ -36,7 +36,7 @@ class DashboardScreen extends StatelessWidget {
                           const Text("Good Morning",
                               style: TextStyle(color: Colors.grey, fontSize: 12)),
                           Text(
-                            "Hello, Fadlan!",
+                            "Hello, Fadlan!", // Nama disesuaikan dengan profilmu
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
@@ -183,8 +183,6 @@ class DashboardScreen extends StatelessWidget {
         onTap: (index) {
           if (index == 0) Navigator.pushReplacementNamed(context, '/dashboard');
           if (index == 1) Navigator.pushReplacementNamed(context, '/analysis');
-          // PERBAIKAN: Navigasi ke Rekomendasi di index 2
-          if (index == 2) Navigator.pushNamed(context, '/recommendation'); 
           if (index == 3) Navigator.pushReplacementNamed(context, '/progress');
           if (index == 4) Navigator.pushReplacementNamed(context, '/profile');
         },

@@ -92,6 +92,7 @@ class ProfileScreen extends StatelessWidget {
         onTap: (index) {
           if (index == 0) Navigator.pushReplacementNamed(context, '/dashboard');
           if (index == 1) Navigator.pushReplacementNamed(context, '/analysis');
+          if (index == 3) Navigator.pushReplacementNamed(context, '/progress');
           if (index == 4) Navigator.pushReplacementNamed(context, '/profile');
         },
         items: const [

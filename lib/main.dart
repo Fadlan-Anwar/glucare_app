@@ -14,6 +14,7 @@ import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
 import 'questionnaire_screen.dart';
 import 'recommendation_screen.dart';
+import 'progress_screen.dart'; // ✅ TAMBAHKAN INI
 
 void main() {
   runApp(const GluCareApp());
@@ -30,9 +31,8 @@ class GluCareApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF007BFF)),
         useMaterial3: true,
-        fontFamily: 'Sans-Serif', // Sesuaikan jika kamu pakai font khusus
+        fontFamily: 'Sans-Serif',
       ),
-      // Halaman pertama yang muncul saat aplikasi dibuka
       initialRoute: '/splash',
       
       routes: {
@@ -45,7 +45,6 @@ class GluCareApp extends StatelessWidget {
         '/analysis': (context) => const AnalysisScreen(),
         '/clinical-mode': (context) => const ClinicalModeScreen(),
         
-        // Halaman Hasil Analisis (Tanpa const karena menerima data)
         '/analysis-result': (context) => const AnalysisResultScreen(
               hba1c: 0.0, 
               gulaDarah: 0, 
@@ -58,8 +57,9 @@ class GluCareApp extends StatelessWidget {
         '/edit-profile': (context) => const EditProfileScreen(),
         '/questionnaire': (context) => const QuestionnaireScreen(),
         
-        // Halaman Rekomendasi yang baru kita buat
         '/recommendation': (context) => const RecommendationScreen(),
+
+        '/progress': (context) => const ProgressScreen(), // ✅ INI YANG PENTING
       },
     );
   }

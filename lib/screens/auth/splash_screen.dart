@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,10 +22,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color mainBlue = Color(0xFF007BFF);
-
     return Scaffold(
-      backgroundColor: mainBlue,
+      backgroundColor: AppColors.mainBlue,
       body: SafeArea(
         child: Stack(
           children: [

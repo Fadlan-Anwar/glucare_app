@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -15,7 +16,7 @@ class LoginScreen extends StatelessWidget {
               width: double.infinity,
               height: 250,
               decoration: const BoxDecoration(
-                color: Color(0xFF007BFF),
+                color: AppColors.mainBlue,
                 borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
               ),
               child: Center(child: Image.asset('assets/images/logo.png', height: 80)),
@@ -25,7 +26,7 @@ class LoginScreen extends StatelessWidget {
               padding: const EdgeInsets.all(30),
               child: Column(
                 children: [
-                  const Text("Welcome Back", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF007BFF))),
+                  const Text("Welcome Back", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.mainBlue)),
                   const SizedBox(height: 25),
                   _buildInput("Email"),
                   _buildInput("Password", isPass: true),
@@ -42,7 +43,7 @@ class LoginScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pushNamed(context, '/dashboard'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007BFF),
+                        backgroundColor: AppColors.mainBlue,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       child: const Text("Login", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

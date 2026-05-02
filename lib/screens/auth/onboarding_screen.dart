@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -41,8 +42,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color mainBlue = Color(0xFF007BFF); // Warna biru sesuai Figma
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -95,7 +94,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 margin: const EdgeInsets.only(right: 5),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: _currentPage == index ? mainBlue : Colors.grey.withOpacity(0.3),
+                  color: _currentPage == index ? AppColors.mainBlue : Colors.grey.withOpacity(0.3),
                 ),
               ),
             ),
@@ -119,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: mainBlue,
+                  backgroundColor: AppColors.mainBlue,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -128,7 +127,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 child: Text(
                   _currentPage == onboardingData.length - 1 
-                      ? "Let's Get Started" // Teks sesuai Figma image_ef6601.jpg
+                      ? "Let's Get Started"
                       : "NEXT",
                   style: const TextStyle(
                     fontSize: 16, 

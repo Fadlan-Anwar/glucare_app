@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class HomeContent extends StatelessWidget {
   final String userName;
@@ -13,7 +14,7 @@ class HomeContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 35),
             decoration: const BoxDecoration(
-              color: Color(0xFF007BFF),
+              color: AppColors.mainBlue,
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(35), 
                 bottomRight: Radius.circular(35),
@@ -24,7 +25,7 @@ class HomeContent extends StatelessWidget {
                 const CircleAvatar(
                   radius: 26, 
                   backgroundColor: Colors.white, 
-                  child: Icon(Icons.person, color: Color(0xFF007BFF), size: 30),
+                  child: Icon(Icons.person, color: AppColors.mainBlue, size: 30),
                 ),
                 const SizedBox(width: 15),
                 Column(
@@ -51,7 +52,7 @@ class HomeContent extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF007BFF), 
+                    color: AppColors.mainBlue, 
                     borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
@@ -76,7 +77,7 @@ class HomeContent extends StatelessWidget {
                           onPressed: () => Navigator.pushNamed(context, '/analysis'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white, 
-                            foregroundColor: const Color(0xFF007BFF),
+                            foregroundColor: AppColors.mainBlue,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),

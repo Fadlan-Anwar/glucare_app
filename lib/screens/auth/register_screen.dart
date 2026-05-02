@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,8 +24,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color mainBlue = Color(0xFF007BFF);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -35,18 +34,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: double.infinity,
               height: 300,
               decoration: const BoxDecoration(
-                color: mainBlue,
+                color: AppColors.mainBlue,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(40),
                   bottomRight: Radius.circular(40),
                 ),
               ),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.water_drop, color: Colors.white, size: 80), 
-                  const SizedBox(height: 10),
-                  const Text("GluCare", 
+                  Icon(Icons.water_drop, color: Colors.white, size: 80), 
+                  SizedBox(height: 10),
+                  Text("GluCare", 
                     style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -57,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 children: [
                   const Text("Get Started", 
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: mainBlue)),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.mainBlue)),
                   const SizedBox(height: 25),
                   
                   _buildTextField("Full Name", controller: _nameController),
@@ -66,7 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   
                   Row(
                     children: [
-                      Checkbox(value: true, activeColor: mainBlue, onChanged: (v){}),
+                      Checkbox(value: true, activeColor: AppColors.mainBlue, onChanged: (v){}),
                       const Expanded(
                         child: Text("I agree to the processing of Personal data", 
                           style: TextStyle(fontSize: 12))
@@ -95,7 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ); 
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: mainBlue,
+                        backgroundColor: AppColors.mainBlue,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         elevation: 0,
                       ),
@@ -126,7 +125,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextButton(
                         onPressed: () => Navigator.pushNamed(context, '/login'),
                         child: const Text("Log in", 
-                          style: TextStyle(color: mainBlue, fontWeight: FontWeight.bold)),
+                          style: TextStyle(color: AppColors.mainBlue, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

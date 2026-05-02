@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 
-// Import semua halaman dari folder lib
-import 'splash_screen.dart';
-import 'login_screen.dart';
-import 'onboarding_screen.dart';
-import 'register_screen.dart';
-import 'dashboard_screen.dart';
-import 'analysis_screen.dart';
-import 'clinical_mode_screen.dart';
-import 'analysis_result_screen.dart'; 
-import 'profile_screen.dart';
-import 'settings_screen.dart';
-import 'edit_profile_screen.dart';
-import 'questionnaire_screen.dart';
-import 'recommendation_screen.dart';
-import 'progress_screen.dart'; // ✅ TAMBAHKAN INI
+// Core
+import 'core/constants/app_colors.dart';
+import 'core/widgets/main_nav_shell.dart';
+
+// Auth Screens
+import 'screens/auth/splash_screen.dart';
+import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+
+// Analysis Screens (untuk push dari dalam tab)
+import 'screens/analysis/clinical_mode_screen.dart';
+import 'screens/analysis/analysis_result_screen.dart';
+import 'screens/analysis/questionnaire_screen.dart';
+
+// Profile sub-screens (untuk push dari dalam tab)
+import 'screens/profile/edit_profile_screen.dart';
+import 'screens/profile/settings/settings_screen.dart';
 
 void main() {
   runApp(const GluCareApp());
@@ -29,37 +32,34 @@ class GluCareApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'GluCare',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF007BFF)),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.mainBlue),
         useMaterial3: true,
         fontFamily: 'Sans-Serif',
       ),
       initialRoute: '/splash',
       
       routes: {
+        // --- Auth flow (halaman terpisah dengan transisi) ---
         '/splash': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/': (context) => const LoginScreen(), 
         '/login': (context) => const LoginScreen(), 
         '/register': (context) => const RegisterScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
-        '/analysis': (context) => const AnalysisScreen(),
-        '/clinical-mode': (context) => const ClinicalModeScreen(),
-        
-        '/analysis-result': (context) => const AnalysisResultScreen(
-              hba1c: 0.0, 
-              gulaDarah: 0, 
-              berat: 0.0, 
-              tinggi: 1.0, 
-            ),
 
-        '/profile': (context) => const ProfileScreen(),
+        // --- Main app (satu shell, 5 tab instan) ---
+        '/dashboard': (context) => const MainNavShell(initialIndex: 0),
+        '/analysis': (context) => const MainNavShell(initialIndex: 1),
+        '/recommendation': (context) => const MainNavShell(initialIndex: 2),
+        '/progress': (context) => const MainNavShell(initialIndex: 3),
+        '/profile': (context) => const MainNavShell(initialIndex: 4),
+
+        // --- Sub-halaman (push di atas shell) ---
+        '/clinical-mode': (context) => const ClinicalModeScreen(),
+        '/analysis-result': (context) => const AnalysisResultScreen(
+              hba1c: 0.0, gulaDarah: 0, berat: 0.0, tinggi: 1.0),
+        '/questionnaire': (context) => const QuestionnaireScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
-        '/questionnaire': (context) => const QuestionnaireScreen(),
-        
-        '/recommendation': (context) => const RecommendationScreen(),
-
-        '/progress': (context) => const ProgressScreen(), // ✅ INI YANG PENTING
       },
     );
   }

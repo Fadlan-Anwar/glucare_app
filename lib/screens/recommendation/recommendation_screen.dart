@@ -20,19 +20,16 @@ class _RecommendationContentState extends State<RecommendationContent> {
         children: [
           // --- HEADER BIRU ---
           Container(
-            padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 15, 25, 30),
-            decoration: const BoxDecoration(color: AppColors.mainBlue, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
+  padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 15, 25, 30),
+  decoration: const BoxDecoration(
+    color: AppColors.mainBlue,
+  ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text("Rencana Intervensi", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              const Text("Skor risiko prediabetes personalmu", style: TextStyle(color: Colors.white70, fontSize: 14)),
-              const SizedBox(height: 25),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                _buildTopStat(Icons.opacity, "18g", "Gula", Colors.red),
-                _buildTopStat(Icons.directions_run, "22 mnt", "Aktivitas", Colors.orange),
-                _buildTopStat(Icons.dark_mode, "6.5 jam", "Tidur", Colors.yellow),
-                _buildTopStat(Icons.local_drink, "6 gelas", "Air", Colors.lightBlueAccent),
-              ]),
-              const SizedBox(height: 25),
+              const Text("Rencana Intervensi", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("Skor risiko prediabetes personalmu", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 15),
+
+              const SizedBox(height: 15),
               Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(15)),
                 child: const Row(children: [Icon(Icons.calendar_today, color: Colors.white, size: 20), SizedBox(width: 15),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Rencana 90 Hari — Hari 5", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text("3 fase intervensi terstruktur", style: TextStyle(color: Colors.white70, fontSize: 12))])),
@@ -50,7 +47,7 @@ class _RecommendationContentState extends State<RecommendationContent> {
             if (activeTab == "Semua" || activeTab == "Terapi") ...[_buildTaskCard("Terapi", "Prioritas Tinggi", "Rutin Minum Obat", Icons.medication, Colors.pink)],
             if (activeTab == "Semua" || activeTab == "Edukasi") ...[_buildTaskCard("Edukasi", "", "Memahami Resistensi Insulin", Icons.psychology, Colors.cyan), _buildTaskCard("Edukasi", "", "Target HbA1c untuk Fase Prediabetes", Icons.bar_chart, Colors.blue)],
             const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: const Color(0xFFE0F7F9), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFB2EBF2))),
+            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFE0F7F9), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFB2EBF2))),
               child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(Icons.info_outline, color: Color(0xFF00838F), size: 18), SizedBox(width: 8), Text("Penting Diketahui", style: TextStyle(color: Color(0xFF00838F), fontWeight: FontWeight.bold))]), SizedBox(height: 8), Text("Rekomendasi ini bersifat edukatif berdasarkan panduan klinis ADA dan WHO. Konsultasikan kondisi Anda dengan dokter atau ahli gizi terdaftar sebelum memulai program intervensi.", style: TextStyle(color: Color(0xFF00838F), fontSize: 11, height: 1.5))])),
             const SizedBox(height: 30),
           ])),
@@ -60,7 +57,7 @@ class _RecommendationContentState extends State<RecommendationContent> {
   }
 
   Widget _buildTopStat(IconData icon, String value, String label, Color color) {
-    return Container(width: 75, padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+    return Container(width: 65, padding: const EdgeInsets.symmetric(vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
       child: Column(children: [Icon(icon, color: color, size: 18), const SizedBox(height: 5), Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)), Text(label, style: const TextStyle(color: Colors.white70, fontSize: 9))]));
   }
 

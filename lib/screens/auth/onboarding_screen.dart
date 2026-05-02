@@ -109,7 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPressed: () {
                   if (_currentPage == onboardingData.length - 1) {
                     // PINDAH KE REGISTRASI sesuai desain Figma
-                    Navigator.pushReplacementNamed(context, '/register');
+                    Navigator.pushReplacementNamed(context, '/auth-choice');
                   } else {
                     _controller.nextPage(
                       duration: const Duration(milliseconds: 300), 

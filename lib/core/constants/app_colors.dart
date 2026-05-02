@@ -25,4 +25,10 @@ class AppColors {
 
   /// Gradient biru untuk header settings
   static const Color gradientBlueLight = Color(0xFF66B2FF);
+
+  /// Warna teks gelap utama
+  static const Color textDark = Color(0xFF1A1A2E);
+
+  /// Warna teks medium (abu-abu)
+  static const Color textMedium = Color(0xFF6B7280);
 }

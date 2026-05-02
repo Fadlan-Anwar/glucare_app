@@ -1,233 +1,593 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/user_provider.dart';
 
-/// Konten dashboard — tanpa Scaffold/bottomNav sendiri.
-/// Dibungkus oleh MainNavShell.
 class DashboardContent extends StatelessWidget {
+  static final ValueNotifier<bool> hasRiskDataNotifier = ValueNotifier<bool>(false);
+
   const DashboardContent({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgGray,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.white,
-        child: const Icon(Icons.smart_toy_outlined, color: AppColors.mainBlue, size: 30),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-
-              // --- 1. HEADER PROFIL ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 25,
-                        backgroundImage: AssetImage('assets/images/profile_user.png'),
-                        backgroundColor: Colors.blueGrey,
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("Good Morning",
-                              style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(
-                            "Hello, Fadlan!",
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Badge(
-                    label: Text("1"),
-                    child: Icon(Icons.notifications_none_outlined, size: 28),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 30),
-
-              // --- 2. BANNER STATUS RISIKO ---
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.mainBlue,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.mainBlue.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Status Risiko",
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Belum Ada Data Risiko",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Yuk mulai penilaian untuk melihat kondisi kesehatan Anda saat ini.",
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/analysis'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.mainBlue,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text("Cek Risiko Sekarang",
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward_ios, size: 14),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // --- 3. ROW STREAK & INTERVENSI ---
-              Row(
-                children: [
-                  _buildStatCard("Streak", "0", "Hari Aktif",
-                      Icons.local_fire_department, Colors.orange),
-                  const SizedBox(width: 15),
-                  _buildStatCard("Intervensi", "0%", "Hari 0/90",
-                      Icons.trending_up, Colors.blue),
-                ],
-              ),
-
-              const SizedBox(height: 30),
-
-              // --- 4. REMINDER PREVIEW ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("⏰ Reminder Preview",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  TextButton(
-                      onPressed: () {},
-                      child: const Text("Kelola",
-                          style: TextStyle(color: AppColors.mainBlue))),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-                  children: [
-                    _buildReminderItem("07:30", "Cek Gula Darah Pagi",
-                        Colors.red, Icons.bloodtype),
-                    const Divider(height: 1),
-                    _buildReminderItem("13:00", "Makan Siang Sehat",
-                        Colors.green, Icons.restaurant),
-                    const Divider(height: 1),
-                    _buildReminderItem("19:00", "Aktivitas Fisik Sore",
-                        Colors.orange, Icons.directions_run),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 20),
+            child: _buildHeader(),
           ),
         ),
-      ),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 30),
+                ValueListenableBuilder<bool>(
+                  valueListenable: hasRiskDataNotifier,
+                  builder: (context, hasRiskData, child) {
+                    return Column(
+                      children: [
+                        _buildRiskStatusCard(context, hasRiskData),
+                        const SizedBox(height: 24),
+                        _buildStatsRow(hasRiskData),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+                _buildReminderSection(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatCard(
-      String title, String value, String sub, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(15),
+  Widget _buildHeader() {
+    return ValueListenableBuilder<UserData>(
+      valueListenable: UserProvider.userNotifier,
+      builder: (context, userData, child) {
+        return Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: userData.profileImage != null
+                      ? FileImage(userData.profileImage!)
+                      : const NetworkImage('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png')
+                          as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good Morning',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  Text(
+                    'Hello, ${userData.name}!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Icon(Icons.notifications_none_rounded,
+                      color: Colors.grey[700], size: 24),
+                ),
+                Positioned(
+                  right: 2,
+                  top: 2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRiskStatusCard(BuildContext context, bool hasRiskData) {
+    if (hasRiskData) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFEF4444), // Red gradient for high risk
+              Color(0xFFB91C1C),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, color: color, size: 18),
-                const SizedBox(width: 8),
-                Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  'Status Risiko',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Prediabetes',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(value,
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '68',
+                  style: GoogleFonts.inter(
+                    fontSize: 32,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  '%',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Risiko Tinggi',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Fokus hari ini: Jaga pola makan & capai target kalori Anda.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: Colors.white.withValues(alpha: 0.9),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
             Container(
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(2)),
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    // Action for viewing plan
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Lihat Rencana Hari Ini',
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFB91C1C),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded,
+                          color: Color(0xFFB91C1C), size: 20),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
+      );
+    }
+
+    // Default "Belum Ada Data" state
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF3B82F6),
+            Color(0xFF1D4ED8),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Status Risiko',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Belum Ada Data Risiko',
+            style: GoogleFonts.inter(
+              fontSize: 22,
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Yuk mulai penilaian untuk melihat kondisi kesehatan Anda saat ini.',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.8),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  // Navigate to check risk menu
+                  Navigator.pushNamed(context, '/clinical-mode');
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Cek Risiko Sekarang',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1D4ED8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: Color(0xFF1D4ED8), size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(bool hasRiskData) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSmallStatCard(
+            icon: Icons.local_fire_department_rounded,
+            iconColor: Colors.orange,
+            title: 'Streak',
+            value: hasRiskData ? '1' : '0',
+            subtitle: 'Hari Aktif',
+            progressWidget: Row(
+              children: List.generate(
+                  7,
+                  (index) => Container(
+                        width: 14,
+                        height: 6,
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: (hasRiskData && index == 0)
+                              ? Colors.orange
+                              : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      )),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildSmallStatCard(
+            icon: Icons.trending_up_rounded,
+            iconColor: Colors.blue,
+            title: 'Intervensi',
+            value: hasRiskData ? '1%' : '0%',
+            subtitle: hasRiskData ? 'Hari 1/90' : 'Hari 0/90',
+            progressWidget: Container(
+              height: 4,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: hasRiskData ? 12 : 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSmallStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Widget progressWidget,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey[100]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 12),
+          progressWidget,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReminderSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey[100]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.alarm_on_rounded,
+                      color: Colors.redAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Reminder Preview',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                'Kelola',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF3B82F6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildReminderItem('07:30', 'Cek Gula Darah Pagi', Colors.red,
+              Icons.water_drop_rounded),
+          const Divider(height: 24, thickness: 1, color: Color(0xFFF1F5F9)),
+          _buildReminderItem('13:00', 'Makan Siang Sehat', Colors.green,
+              Icons.restaurant_rounded),
+          const Divider(height: 24, thickness: 1, color: Color(0xFFF1F5F9)),
+          _buildReminderItem('19:00', 'Aktivitas Fisik Sore', Colors.orange,
+              Icons.directions_run_rounded),
+        ],
       ),
     );
   }
 
   Widget _buildReminderItem(
-      String time, String task, Color iconCol, IconData icon) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-            color: iconCol.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8)),
-        child: Text(time,
-            style: TextStyle(
-                color: iconCol, fontWeight: FontWeight.bold, fontSize: 12)),
-      ),
-      title: Text(task,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      trailing: Icon(icon, color: iconCol, size: 20),
+      String time, String title, Color color, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            time,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1A1A),
+            ),
+          ),
+        ),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            color: Colors.blue,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
     );
   }
 }

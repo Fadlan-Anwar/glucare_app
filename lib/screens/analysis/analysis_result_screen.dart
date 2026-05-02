@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_bottom_nav.dart';
+import '../home/dashboard_screen.dart';
 
 class AnalysisResultScreen extends StatelessWidget {
   final double hba1c;
@@ -18,6 +19,9 @@ class AnalysisResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Set hasRiskData to true so the Dashboard updates
+    DashboardContent.hasRiskDataNotifier.value = true;
+
     return Scaffold(
       backgroundColor: AppColors.bgGray,
       // --- MENU BAWAH (BOTTOM NAVIGATION BAR) ---
@@ -158,7 +162,7 @@ class AnalysisResultScreen extends StatelessWidget {
                   // --- TOMBOL-TOMBOL BAWAH ---
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/recommendation');
+                      Navigator.pushNamedAndRemoveUntil(context, '/recommendation', (route) => false);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.mainBlue,

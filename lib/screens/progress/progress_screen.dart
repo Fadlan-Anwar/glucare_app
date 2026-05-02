@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'tabs/hari_90_tab.dart';
+import 'tabs/pencapaian_tab.dart';
+import 'tabs/evaluasi_tab.dart';
 
 /// Konten tab Progres — tanpa bottomNav sendiri.
 class ProgressContent extends StatefulWidget {
@@ -10,108 +13,155 @@ class ProgressContent extends StatefulWidget {
 }
 
 class _ProgressContentState extends State<ProgressContent> {
-  int selectedTab = 0;
+  int _selectedTabIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    double progress = 5 / 90;
-    return SingleChildScrollView(child: Column(children: [
-      _buildHeader(context), const SizedBox(height: 15), _buildTabs(), const SizedBox(height: 15),
-      _buildProgressCard(progress), const SizedBox(height: 20),
-      _sectionTitle("Target Hari Ini"), _buildTargetGrid(), const SizedBox(height: 10),
-      _sectionTitle("Fase Intervensi"), _buildFaseSection(), const SizedBox(height: 10),
-      _sectionTitle("Level & XP"), _buildLevelSection(), const SizedBox(height: 10),
-      _sectionTitle("Tugas Harian", trailing: "0/6"), _buildTaskSection(), const SizedBox(height: 40),
-    ]));
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FB),
+      body: Column(
+        children: [
+          _buildHeader(),
+          _buildTabs(),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _selectedTabIndex == 0
+                  ? const Hari90Tab()
+                  : _selectedTabIndex == 1
+                      ? const PencapaianTab()
+                      : const EvaluasiTab(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(width: double.infinity, padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 15, 20, 30),
-      decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF1E88E5), Color(0xFF1565C0)]), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text("Progres & Evaluasi", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        const Text("Pantau intervensi metabolik harianmu", style: TextStyle(color: Colors.white70, fontSize: 12)),
-        const SizedBox(height: 20),
-        Row(children: [Expanded(child: _statCard("🔥", "1 hari", "Streak")), const SizedBox(width: 10), Expanded(child: _statCard("⚡", "8", "Level")), const SizedBox(width: 10), Expanded(child: _statCard("🏅", "4", "Pencapaian"))]),
-      ]));
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E88E5), Color(0xFF42A5F5)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Progres & Evaluasi',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Pantau intervensi metabolik harianmu',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: _buildHeaderMetricCard('🔥', '1 hari', 'Streak')),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildHeaderMetricCard('⚡', '8', 'Level')),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildHeaderMetricCard('🏅', '4', 'Pencapaian')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _statCard(String icon, String value, String label) {
-    return Container(padding: const EdgeInsets.symmetric(vertical: 15), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(15)),
-      child: Column(children: [Text(icon, style: const TextStyle(fontSize: 20)), const SizedBox(height: 5), Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11))]));
+  Widget _buildHeaderMetricCard(String emoji, String title, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTabs() {
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
-        child: Row(children: [_tab("90 Hari", 0), _tab("Pencapaian", 1), _tab("Evaluasi", 2)])));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Row(
+        children: [
+          _buildTab(0, '📅 90 Hari'),
+          const SizedBox(width: 12),
+          _buildTab(1, '🏆 Pencapaian'),
+          const SizedBox(width: 12),
+          _buildTab(2, '🎯 Evaluasi'),
+        ],
+      ),
+    );
   }
 
-  Widget _tab(String text, int index) {
-    bool active = selectedTab == index;
-    return Expanded(child: GestureDetector(onTap: () => setState(() => selectedTab = index),
-      child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: active ? Colors.blue : Colors.transparent, borderRadius: BorderRadius.circular(25)),
-        child: Center(child: Text(text, style: TextStyle(color: active ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 12))))));
-  }
-
-  Widget _buildProgressCard(double progress) {
-    return Container(margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]),
-      child: Row(children: [
-        Stack(alignment: Alignment.center, children: [SizedBox(width: 70, height: 70, child: CircularProgressIndicator(value: progress, strokeWidth: 8)), Text("${(progress * 100).toInt()}%")]),
-        const SizedBox(width: 20),
-        const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Intervensi 90 Hari", style: TextStyle(fontWeight: FontWeight.bold)), Text("Hari ke-5 dari 90", style: TextStyle(color: Colors.grey, fontSize: 12)), Text("85 hari tersisa • Fase 1/3", style: TextStyle(color: Colors.blue, fontSize: 12))])]));
-  }
-
-  Widget _sectionTitle(String title, {String? trailing}) {
-    return Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 5), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-      if (trailing != null) Text(trailing, style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))]));
-  }
-
-  Widget _buildTargetGrid() {
-    return Padding(padding: const EdgeInsets.all(20), child: GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 15, mainAxisSpacing: 15, childAspectRatio: 1.45,
-      children: [_targetCard("Gula", "18g", "/40g", 0.45, Colors.blue), _targetCard("Aktivitas", "22 mnt", "/21 mnt", 1.0, Colors.teal), _targetCard("Tidur", "6.5 jam", "/8 jam", 0.8, Colors.orange), _targetCard("Air", "6 gelas", "/8 gelas", 0.75, Colors.lightBlue)]));
-  }
-
-  Widget _targetCard(String title, String value, String target, double progress, Color color) {
-    return Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text("${(progress * 100).toInt()}%", style: TextStyle(color: color, fontSize: 10)), const SizedBox(height: 5),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        Text(target, style: const TextStyle(fontSize: 10, color: Colors.grey)), const SizedBox(height: 5),
-        TweenAnimationBuilder(tween: Tween<double>(begin: 0, end: progress), duration: const Duration(milliseconds: 800), builder: (context, value, child) => LinearProgressIndicator(value: value, color: color)),
-        const SizedBox(height: 5), Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey))]));
-  }
-
-  Widget _buildFaseSection() {
-    return Container(margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: Column(children: [_faseItem(1, true), _faseItem(2, false), _faseItem(3, false)]));
-  }
-
-  Widget _faseItem(int index, bool active) {
-    return Container(margin: const EdgeInsets.symmetric(vertical: 6), padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: active ? Colors.blue.withOpacity(0.08) : Colors.grey.shade100, borderRadius: BorderRadius.circular(15), border: active ? Border.all(color: Colors.blue) : null),
-      child: Row(children: [
-        CircleAvatar(radius: 14, backgroundColor: active ? Colors.blue : Colors.grey, child: Text("$index", style: const TextStyle(color: Colors.white, fontSize: 12))),
-        const SizedBox(width: 12),
-        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Stabilisasi Dasar", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text("Hari 1–30", style: TextStyle(fontSize: 11, color: Colors.grey)), SizedBox(height: 5), Text("🍬 ≤40g   🏃 150 mnt   😴 7 jam", style: TextStyle(fontSize: 10))]))]));
-  }
-
-  Widget _buildLevelSection() {
-    return Container(margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-      child: Column(children: [const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Level & XP"), Text("⚡ Level 8", style: TextStyle(color: Colors.orange))]),
-        const SizedBox(height: 10), const LinearProgressIndicator(value: 0.08, color: Colors.orange), const SizedBox(height: 5), const Text("195 / 2400 XP")]));
-  }
-
-  Widget _buildTaskSection() {
-    return Container(margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-      child: Column(children: [_taskItem("Jalan kaki 30 menit", "+25 XP"), _taskItem("Batasi gula < 25g hari ini", "+30 XP")]));
-  }
-
-  Widget _taskItem(String text, String xp) {
-    return Container(margin: const EdgeInsets.symmetric(vertical: 6), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
-      child: Row(children: [const Icon(Icons.radio_button_unchecked, size: 18), const SizedBox(width: 10), Expanded(child: Text(text)), Text(xp, style: const TextStyle(color: Colors.orange))]));
+  Widget _buildTab(int index, String text) {
+    final isSelected = _selectedTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTabIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1D4ED8) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            if (!isSelected)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Text(
+          text,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : Colors.grey[700],
+          ),
+        ),
+      ),
+    );
   }
 }

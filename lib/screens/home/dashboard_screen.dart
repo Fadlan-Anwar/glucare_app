@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+/// Konten dashboard — tanpa Scaffold/bottomNav sendiri.
+/// Dibungkus oleh MainNavShell.
+class DashboardContent extends StatelessWidget {
+  const DashboardContent({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color mainBlue = Color(0xFF007BFF);
-    const Color bgGray = Color(0xFFF8F9FA);
-
     return Scaffold(
-      backgroundColor: bgGray,
+      backgroundColor: AppColors.bgGray,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: Colors.white,
+        child: const Icon(Icons.smart_toy_outlined, color: AppColors.mainBlue, size: 30),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -36,7 +41,7 @@ class DashboardScreen extends StatelessWidget {
                           const Text("Good Morning",
                               style: TextStyle(color: Colors.grey, fontSize: 12)),
                           Text(
-                            "Hello, Fadlan!", // Nama disesuaikan dengan profilmu
+                            "Hello, Fadlan!",
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
@@ -58,11 +63,11 @@ class DashboardScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: mainBlue,
+                  color: AppColors.mainBlue,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: mainBlue.withOpacity(0.3),
+                      color: AppColors.mainBlue.withOpacity(0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     )
@@ -94,7 +99,7 @@ class DashboardScreen extends StatelessWidget {
                             Navigator.pushNamed(context, '/analysis'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: mainBlue,
+                          foregroundColor: AppColors.mainBlue,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -139,7 +144,7 @@ class DashboardScreen extends StatelessWidget {
                   TextButton(
                       onPressed: () {},
                       child: const Text("Kelola",
-                          style: TextStyle(color: mainBlue))),
+                          style: TextStyle(color: AppColors.mainBlue))),
                 ],
               ),
               const SizedBox(height: 10),
@@ -161,42 +166,10 @@ class DashboardScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 100),
+              const SizedBox(height: 30),
             ],
           ),
         ),
-      ),
-
-      // --- 5. FLOATING CHAT BOT ---
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.white,
-        child: const Icon(Icons.smart_toy_outlined, color: mainBlue, size: 30),
-      ),
-
-      // --- 6. BOTTOM NAVIGATION BAR (SUDAH AKTIF) ---
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: mainBlue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 0) Navigator.pushReplacementNamed(context, '/dashboard');
-          if (index == 1) Navigator.pushReplacementNamed(context, '/analysis');
-          if (index == 3) Navigator.pushReplacementNamed(context, '/progress');
-          if (index == 4) Navigator.pushReplacementNamed(context, '/profile');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.analytics_outlined), label: "Analisis"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.lightbulb_outline), label: "Rekomendasi"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart), label: "Progres"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: "Profil"),
-        ],
       ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/widgets/app_bottom_nav.dart';
 
 class AnalysisResultScreen extends StatelessWidget {
   final double hba1c;
@@ -16,25 +18,10 @@ class AnalysisResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color mainBlue = Color(0xFF007BFF);
-    const Color mainRed = Color(0xFFDC3545);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      // --- MENU BAWAH (BOTTOM NAVIGATION BAR) SESUAI FIGMA ---
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: mainBlue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 1, // Menu 'Analisis' aktif
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Analisis'),
-          BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Rekomendasi'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Progres'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-        ],
-      ),
+      backgroundColor: AppColors.bgGray,
+      // --- MENU BAWAH (BOTTOM NAVIGATION BAR) ---
+      bottomNavigationBar: const AppBottomNav(currentIndex: 1),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -43,7 +30,7 @@ class AnalysisResultScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.only(top: 60, bottom: 30),
               decoration: const BoxDecoration(
-                color: mainBlue,
+                color: AppColors.mainBlue,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
@@ -69,7 +56,7 @@ class AnalysisResultScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // --- KARTU SKOR UTAMA (SESUAI FIGMA) ---
+                  // --- KARTU SKOR UTAMA ---
                   Container(
                     padding: const EdgeInsets.all(25),
                     decoration: BoxDecoration(
@@ -86,15 +73,15 @@ class AnalysisResultScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.report_problem, color: mainRed, size: 50),
+                        const Icon(Icons.report_problem, color: AppColors.mainRed, size: 50),
                         const SizedBox(height: 10),
                         const Text(
                           "68%",
-                          style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: mainRed),
+                          style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: AppColors.mainRed),
                         ),
                         const Text(
                           "● Risiko Tinggi",
-                          style: TextStyle(color: mainRed, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(color: AppColors.mainRed, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const Text(
                           "Indikasi Prediabetes/Diabetes",
@@ -150,7 +137,7 @@ class AnalysisResultScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE3F2FD), // Biru muda sesuai Figma
+                      color: const Color(0xFFE3F2FD),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: Colors.blue.shade100, width: 1.5),
                     ),
@@ -171,11 +158,10 @@ class AnalysisResultScreen extends StatelessWidget {
                   // --- TOMBOL-TOMBOL BAWAH ---
                   ElevatedButton(
                     onPressed: () {
-                      // Ini perintah untuk pindah ke halaman rekomendasi
                       Navigator.pushNamed(context, '/recommendation');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: mainBlue,
+                      backgroundColor: AppColors.mainBlue,
                       minimumSize: const Size(double.infinity, 55),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
@@ -189,7 +175,7 @@ class AnalysisResultScreen extends StatelessWidget {
                   const SizedBox(height: 15),
                   
                   OutlinedButton(
-                    onPressed: () => Navigator.pop(context), // Balik ke input sebelumnya
+                    onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 55),
                       side: const BorderSide(color: Colors.grey, width: 1.5),
@@ -201,7 +187,7 @@ class AnalysisResultScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  const SizedBox(height: 30), // Spasi paling bawah agar tidak mepet
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -211,7 +197,7 @@ class AnalysisResultScreen extends StatelessWidget {
     );
   }
 
-  // Widget pembantu untuk mini statistik (Usia Kronologis, dll)
+  // Widget pembantu untuk mini statistik
   Widget _buildMiniStat(String value, String label) {
     return Column(
       children: [

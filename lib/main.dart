@@ -9,6 +9,7 @@ import 'screens/auth/splash_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/auth/auth_choice_screen.dart';
 
 // Analysis Screens (untuk push dari dalam tab)
 import 'screens/analysis/clinical_mode_screen.dart';
@@ -44,6 +45,7 @@ class GluCareApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingScreen(),
         '/': (context) => const LoginScreen(), 
         '/login': (context) => const LoginScreen(), 
+        '/auth-choice': (context) => const AuthChoiceScreen(),
         '/register': (context) => const RegisterScreen(),
 
         // --- Main app (satu shell, 5 tab instan) ---

@@ -49,6 +49,8 @@ class _MainNavShellState extends State<MainNavShell> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.mainBlue,
         unselectedItemColor: Colors.grey,
+        selectedFontSize: 11.0,
+        unselectedFontSize: 10.0,
         currentIndex: _currentIndex,
         onTap: (index) {
           if (index != _currentIndex) {

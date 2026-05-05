@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -9,136 +9,218 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _controller = PageController();
+  final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, String>> onboardingData = [
-    {
-      "title": "Welcome to Glucare",
-      "subtitle": "Your Ai assistant to help you avoid diabetes with ease and fun.",
-      "image": "assets/images/logo.png"
-    },
-    {
-      "title": "Stay Healthy",
-      "subtitle": "Get daily suggestions, reminders, and information from Glucare.",
-      "image": "assets/images/logo.png"
-    },
-    {
-      "title": "Check Your\nDiabetes Risk",
-      "subtitle": "Quickly discover your diabetes risk through a simple health assessment.",
-      "image": "assets/images/onboarding1.png"
-    },
-    {
-      "title": "Get Health\nRecommendations",
-      "subtitle": "Receive recommendations for better lifestyle, nutrition, and daily activity.",
-      "image": "assets/images/onboarding2.png"
-    },
-    {
-      "title": "90 Day\nHealth Plan",
-      "subtitle": "Start a structured 90-day program to improve your health and reduce risk.",
-      "image": "assets/images/onboarding3.png"
-    },
+  final List<_OnboardingPage> _pages = const [
+    _OnboardingPage(
+      imagePath: 'assets/images/onboarding1.png',
+      title: 'Cek Risiko Diabetes Anda',
+      subtitle: 'Ketahui risiko diabetes Anda dengan cepat melalui penilaian kesehatan yang sederhana.',
+    ),
+    _OnboardingPage(
+      imagePath: 'assets/images/onboarding2.png',
+      title: 'Rekomendasi Kesehatan Pintar',
+      subtitle: 'Terima saran personal untuk pola makan, olahraga, dan gaya hidup sehat yang disesuaikan untuk Anda.',
+    ),
+    _OnboardingPage(
+      imagePath: 'assets/images/onboarding3.png',
+      title: 'Program 90 Hari & Pengingat',
+      subtitle: 'Jalani program kesehatan 90 hari dengan misi harian dan pantau progres Anda setiap saat.',
+    ),
   ];
+
+  void _onNext() {
+    if (_currentPage < _pages.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.fastOutSlowIn,
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, '/auth-choice');
+    }
+  }
+
+  void _onSkip() {
+    Navigator.pushReplacementNamed(context, '/auth-choice');
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _controller,
-              onPageChanged: (v) => setState(() => _currentPage = v),
-              itemCount: onboardingData.length,
-              itemBuilder: (context, i) => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // PageView
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() => _currentPage = index);
+                },
+                itemCount: _pages.length,
+                itemBuilder: (context, index) {
+                  final page = _pages[index];
+                  return _buildPage(page);
+                },
+              ),
+            ),
+
+            // Bottom section
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Column(
                 children: [
-                  Image.asset(onboardingData[i]["image"]!, height: 250),
-                  const SizedBox(height: 40),
-                  Text(
-                    onboardingData[i]["title"]!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 26, 
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E1E1E),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      onboardingData[i]["subtitle"]!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey,
-                        height: 1.5,
+                  // Dot Indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _pages.length,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentPage == index ? 32 : 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? const Color(0xFF007AE1)
+                              : const Color(0xFFD4E4F7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Bottom Navigation Buttons (no background)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Skip Button
+                      TextButton(
+                        onPressed: _onSkip,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF3B5998),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        child: Text(
+                          'Lewati',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF4A6B9C),
+                          ),
+                        ),
+                      ),
+
+                      // Next Button
+                      SizedBox(
+                        width: 120,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _onNext,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007AE1),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          child: Text(
+                            _currentPage == _pages.length - 1 ? 'Mulai' : 'Lanjut',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-          
-          // Indikator Titik (Dot Indicator)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              onboardingData.length,
-              (index) => Container(
-                height: 8,
-                width: _currentPage == index ? 24 : 8,
-                margin: const EdgeInsets.only(right: 5),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: _currentPage == index ? AppColors.mainBlue : Colors.grey.withOpacity(0.3),
-                ),
-              ),
-            ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(30, 40, 30, 50),
+  Widget _buildPage(_OnboardingPage page) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Illustration Image
+          Hero(
+            tag: page.imagePath,
             child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_currentPage == onboardingData.length - 1) {
-                    // PINDAH KE REGISTRASI sesuai desain Figma
-                    Navigator.pushReplacementNamed(context, '/auth-choice');
-                  } else {
-                    _controller.nextPage(
-                      duration: const Duration(milliseconds: 300), 
-                      curve: Curves.ease,
-                    );
-                  }
+              height: 280,
+              child: Image.asset(
+                page.imagePath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 280,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                    ),
+                  );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mainBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  _currentPage == onboardingData.length - 1 
-                      ? "Let's Get Started"
-                      : "NEXT",
-                  style: const TextStyle(
-                    fontSize: 16, 
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
               ),
             ),
-          )
+          ),
+          const SizedBox(height: 40),
+          
+          // Title
+          Text(
+            page.title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Subtitle
+          Text(
+            page.subtitle,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              color: Colors.black87,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+class _OnboardingPage {
+  final String imagePath;
+  final String title;
+  final String subtitle;
+
+  const _OnboardingPage({
+    required this.imagePath,
+    required this.title,
+    required this.subtitle,
+  });
 }

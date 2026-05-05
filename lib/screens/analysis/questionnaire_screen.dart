@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
-import 'analysis_result_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class QuestionnaireScreen extends StatefulWidget {
   const QuestionnaireScreen({super.key});
@@ -12,105 +11,334 @@ class QuestionnaireScreen extends StatefulWidget {
 class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  String? _selectedOption;
 
-  final List<Map<String, dynamic>> _questions = [
-    {"question": "Usia Anda saat ini?", "options": ["20-29 Tahun", "30-39 Tahun", "40+ Tahun"]},
-    {"question": "Ada anggota Keluarga dengan diabetes?", "options": ["Ya", "Tidak", "Tidak Tahu"]},
-    {"question": "Seberapa sering Anda berolahraga per minggu?", "options": ["Tidak Pernah", "1-2 kali", "3+ kali"]},
-    {"question": "Seberapa sering konsumsi minuman manis?", "options": ["Setiap hari", "Berapa kali seminggu", "Jarang"]},
-    {"question": "Bagaimana ukuran lingkar pinggang Anda?", "options": ["Normal", "Agak Besar", "Besar"]},
-    {"question": "Apakah Anda sering haus berlebih?", "options": ["Sering", "Kadang-kadang", "Tidak pernah"]},
-    {"question": "Berapa jam Anda tidur per malam?", "options": ["< 6 jam", "5 - 6 jam", "7 - 8 jam"]},
-    {"question": "Bagaimana tingkat stres harian Anda?", "options": ["Tinggi", "Sedang", "Rendah"]},
+  final List<_Question> _questions = [
+    _Question(
+      question: 'Usia Anda saat ini?',
+      options: ['20-29 Tahun', '30-39 tahun', '40+ tahun'],
+    ),
+    _Question(
+      question: 'Apakah ada anggota keluarga Anda yang menderita diabetes?',
+      options: ['Tidak ada', 'Ya, kakek/nenek', 'Ya, orang tua', 'Ya, saudara kandung'],
+    ),
+    _Question(
+      question: 'Bagaimana berat badan Anda menurut Anda?',
+      options: ['Ideal / normal', 'Sedikit kelebihan', 'Kelebihan berat badan', 'Obesitas'],
+    ),
+    _Question(
+      question: 'Seberapa sering Anda berolahraga?',
+      options: ['Rutin (≥3x/minggu)', '1–2x per minggu', 'Jarang sekali', 'Tidak pernah'],
+    ),
+    _Question(
+      question: 'Bagaimana pola makan Anda sehari-hari?',
+      options: ['Seimbang & banyak sayur', 'Cukup sehat', 'Sering makan cepat saji', 'Banyak gula & gorengan'],
+    ),
+    _Question(
+      question: 'Berapa jam Anda tidur setiap malam?',
+      options: ['7–9 jam (ideal)', '5–6 jam', 'Kurang dari 5 jam', 'Tidak teratur'],
+    ),
+    _Question(
+      question: 'Apakah Anda merokok atau mengonsumsi alkohol?',
+      options: ['Tidak keduanya', 'Kadang-kadang', 'Salah satu rutin', 'Keduanya rutin'],
+    ),
+    _Question(
+      question: 'Pernah didiagnosis tekanan darah tinggi?',
+      options: ['Ya', 'Tidak'],
+    ),
   ];
 
-  void _handleNext() {
-    if (_selectedOption == null) return;
-    if (_currentPage < 7) {
-      setState(() { _currentPage++; _selectedOption = null; });
-      _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+  late List<int> _selectedAnswers;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedAnswers = List.filled(_questions.length, -1);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _selectAnswer(int questionIndex, int answerIndex) {
+    setState(() {
+      _selectedAnswers[questionIndex] = answerIndex;
+    });
+    
+    // Automatically proceed to next page
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        _nextPage();
+      }
+    });
+  }
+
+  void _nextPage() {
+    if (_currentPage < _questions.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     } else {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalysisResultScreen(hba1c: 0.0, gulaDarah: 0, berat: 0.0, tinggi: 1.0)));
+      Navigator.pushNamed(context, '/analysis-result');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgGray,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, selectedItemColor: AppColors.mainBlue, unselectedItemColor: Colors.grey, currentIndex: 1,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Analisis'),
-          BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: 'Rekomendasi'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Progres'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-        ],
-      ),
-      body: Stack(
+      backgroundColor: const Color(0xFFF8F9FB),
+      body: Column(
         children: [
-          Container(
-            height: 250,
-            decoration: const BoxDecoration(color: AppColors.mainBlue, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40))),
-            child: SafeArea(
-              child: Column(children: [
-                Row(children: [
-                  IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
-                  const Expanded(child: Center(child: Text("Analisis Risiko", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)))),
-                  const SizedBox(width: 40),
-                ]),
-                const Text("Masukkan data untuk analisis Ai", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                const SizedBox(height: 15),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 40), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: (_currentPage + 1) / 8, backgroundColor: Colors.white24, valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange), minHeight: 4))),
-              ]),
-            ),
-          ),
-          SafeArea(
-            child: Column(children: [
-              const SizedBox(height: 130),
-              Padding(padding: const EdgeInsets.symmetric(horizontal: 25), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text("Pertanyaan ${_currentPage + 1} / 8", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-                Row(children: List.generate(8, (i) => Container(margin: const EdgeInsets.only(left: 4), width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, color: _currentPage == i ? Colors.white : Colors.white38)))),
-              ])),
-              const SizedBox(height: 15),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(25),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)]),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_questions[_currentPage]['question'], style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 20),
-                    ...(_questions[_currentPage]['options'] as List<String>).map((opt) {
-                      bool isSelected = _selectedOption == opt;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedOption = opt),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? AppColors.mainBlue : Colors.grey.shade200, width: 1.5), color: isSelected ? AppColors.mainBlue.withOpacity(0.05) : Colors.transparent),
-                          child: Row(children: [
-                            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_off, color: isSelected ? AppColors.mainBlue : Colors.grey, size: 20),
-                            const SizedBox(width: 12),
-                            Text(opt, style: const TextStyle(fontSize: 15)),
-                          ]),
-                        ),
-                      );
-                    }),
-                    const Spacer(),
-                    Align(alignment: Alignment.centerRight, child: ElevatedButton(
-                      onPressed: _selectedOption == null ? null : _handleNext,
-                      style: ElevatedButton.styleFrom(backgroundColor: _currentPage == 7 ? AppColors.mainBlue : Colors.white, foregroundColor: _currentPage == 7 ? Colors.white : Colors.black, elevation: 0, side: BorderSide(color: Colors.grey.shade300), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [Text(_currentPage == 7 ? "Lihat Hasil" : "Selanjutnya"), const Icon(Icons.arrow_forward, size: 16)]),
-                    )),
-                  ]),
+          _buildHeader(context),
+          Expanded(
+            child: Column(
+              children: [
+                _buildProgressIndicator(),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(), // Disable swipe to force using buttons
+                    onPageChanged: (index) {
+                      setState(() => _currentPage = index);
+                    },
+                    itemCount: _questions.length,
+                    itemBuilder: (context, index) {
+                      return _buildQuestionCard(index);
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ]),
+                _buildBottomAction(),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E88E5), Color(0xFF42A5F5)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (Navigator.canPop(context))
+                        GestureDetector(
+                          onTap: () => Navigator.maybePop(context),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 16),
+                            padding: const EdgeInsets.all(4),
+                            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      Expanded(
+                        child: Text(
+                          'Mode Kuesioner',
+                          style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Masukkan data untuk analisis Ai',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Pertanyaan ${_currentPage + 1} / ${_questions.length}',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          Row(
+            children: List.generate(_questions.length, (index) {
+              return Container(
+                margin: const EdgeInsets.only(left: 6),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: index == _currentPage 
+                      ? const Color(0xFF1E88E5) 
+                      : Colors.grey[300],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(int index) {
+    final q = _questions[index];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              q.question,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ...List.generate(q.options.length, (optIndex) {
+              final isSelected = _selectedAnswers[index] == optIndex;
+              return GestureDetector(
+                onTap: () => _selectAnswer(index, optIndex),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFF1F5F9),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF3B82F6) : Colors.grey[400]!,
+                            width: isSelected ? 5 : 1.5,
+                          ),
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          q.options[optIndex],
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: const Color(0xFF334155),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomAction() {
+    if (_currentPage == 0) return const SizedBox(height: 80); // To keep spacing consistent
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          OutlinedButton(
+            onPressed: () {
+              _pageController.previousPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              side: BorderSide(color: Colors.grey[300]!),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.grey[600], size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Kembali',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Question {
+  final String question;
+  final List<String> options;
+
+  _Question({
+    required this.question,
+    required this.options,
+  });
 }

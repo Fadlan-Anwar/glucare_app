@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/auth_service.dart';
 import 'privacy_policy_screen.dart';
 import 'terms_of_service_screen.dart';
@@ -15,68 +15,201 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20), onPressed: () => Navigator.pop(context)),
-        title: const Text("Profile Settings", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF111827)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Pengaturan",
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF111827),
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("Account Settings", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: AppColors.lightBlueBg, borderRadius: BorderRadius.circular(20)),
-            child: Column(children: [
-              _SettingItem(icon: Icons.edit_outlined, title: "Edit Profile Details", onTap: () => Navigator.pushNamed(context, '/edit-profile')),
-              const Divider(color: Colors.white, thickness: 1),
-              _SettingItem(
-                icon: Icons.key_outlined,
-                title: "Change Password",
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen())),
+        physics: const ClampingScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle("Pengaturan Akun"),
+            const SizedBox(height: 12),
+            _buildSettingsGroup([
+              _SettingItemData(
+                icon: Icons.edit_outlined,
+                title: "Edit Profil",
+                onTap: () => Navigator.pushNamed(context, '/edit-profile'),
+                showBorder: true,
               ),
-              const Divider(color: Colors.white, thickness: 1),
-              _SettingItem(icon: Icons.notifications_none_outlined, title: "Notification Preference", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationPreferenceScreen()))),
-            ])),
-          const SizedBox(height: 30),
-          const Text("App Information & Legal", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: AppColors.lightBlueBg, borderRadius: BorderRadius.circular(20)),
-            child: Column(children: [
-              _SettingItem(icon: Icons.lock_outline, title: "Privacy Policy", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()))),
-              const Divider(color: Colors.white, thickness: 1),
-              _SettingItem(icon: Icons.description_outlined, title: "Terms of Service", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServiceScreen()))),
-              const Divider(color: Colors.white, thickness: 1),
-              _SettingItem(icon: Icons.help_outline, title: "Help & Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpSupportScreen()))),
-            ])),
-          const SizedBox(height: 50),
-          _buildLogoutButton(context),
-        ]),
+              _SettingItemData(
+                icon: Icons.lock_outline_rounded,
+                title: "Ubah Kata Sandi",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen())),
+                showBorder: true,
+              ),
+              _SettingItemData(
+                icon: Icons.notifications_none_rounded,
+                title: "Preferensi Notifikasi",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationPreferenceScreen())),
+                showBorder: false,
+              ),
+            ]),
+            const SizedBox(height: 32),
+            _buildSectionTitle("Informasi & Legal"),
+            const SizedBox(height: 12),
+            _buildSettingsGroup([
+              _SettingItemData(
+                icon: Icons.privacy_tip_outlined,
+                title: "Kebijakan Privasi",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen())),
+                showBorder: true,
+              ),
+              _SettingItemData(
+                icon: Icons.description_outlined,
+                title: "Syarat & Ketentuan",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServiceScreen())),
+                showBorder: true,
+              ),
+              _SettingItemData(
+                icon: Icons.help_outline_rounded,
+                title: "Pusat Bantuan",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpSupportScreen())),
+                showBorder: false,
+              ),
+            ]),
+            const SizedBox(height: 48),
+            _buildLogoutButton(context),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context) => SizedBox(width: double.infinity,
-    child: Container(decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.gradientBlueLight, AppColors.mainBlue]), borderRadius: BorderRadius.circular(15)),
-      child: ElevatedButton(onPressed: () => _showLogoutDialog(context),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, padding: const EdgeInsets.symmetric(vertical: 15)),
-        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.logout, color: Colors.white), SizedBox(width: 10), Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))]))));
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title.toUpperCase(),
+      style: GoogleFonts.poppins(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: const Color(0xFF9CA3AF),
+      ),
+    );
+  }
+
+  Widget _buildSettingsGroup(List<_SettingItemData> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+      ),
+      child: Column(
+        children: items.map((item) => _buildSettingItem(item)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSettingItem(_SettingItemData item) {
+    return InkWell(
+      onTap: item.onTap,
+      borderRadius: BorderRadius.circular(item.showBorder ? 0 : 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          border: item.showBorder ? const Border(bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1.5)) : null,
+        ),
+        child: Row(
+          children: [
+            Icon(item.icon, color: const Color(0xFF4B5563), size: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                item.title,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF4B5563),
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey[400], size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _showLogoutDialog(context),
+        icon: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 20),
+        label: Text(
+          "Keluar Akun",
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFFDC2626),
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFEF2F2),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.logout, color: AppColors.mainBlue),
-            SizedBox(width: 10),
-            Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
+            const SizedBox(width: 10),
+            Text(
+              'Keluar',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: const Color(0xFF111827),
+              ),
+            ),
           ],
         ),
-        content: const Text('Apakah Anda yakin ingin keluar dari akun?'),
+        content: Text(
+          'Apakah Anda yakin ingin keluar dari akun ini?',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFF4B5563),
+            fontSize: 14,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6B7280),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -85,10 +218,18 @@ class SettingsScreen extends StatelessWidget {
               Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mainBlue,
+              backgroundColor: const Color(0xFFDC2626),
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: const Text('Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Keluar',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -96,16 +237,16 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _SettingItem extends StatelessWidget {
-  final IconData icon; final String title; final VoidCallback onTap;
-  const _SettingItem({required this.icon, required this.title, required this.onTap});
+class _SettingItemData {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool showBorder;
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-      child: Row(children: [
-        Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: AppColors.mainBlue, size: 20)),
-        const SizedBox(width: 15), Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)), const Spacer(), const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black54),
-      ])));
-  }
+  _SettingItemData({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.showBorder = false,
+  });
 }

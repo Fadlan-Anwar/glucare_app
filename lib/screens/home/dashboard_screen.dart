@@ -5,6 +5,7 @@ import '../../core/user_provider.dart';
 
 class DashboardContent extends StatelessWidget {
   static final ValueNotifier<bool> hasRiskDataNotifier = ValueNotifier<bool>(false);
+  static final ValueNotifier<Map<String, dynamic>?> analysisDataNotifier = ValueNotifier<Map<String, dynamic>?>(null);
 
   const DashboardContent({super.key});
 
@@ -31,12 +32,17 @@ class DashboardContent extends StatelessWidget {
                 ValueListenableBuilder<bool>(
                   valueListenable: hasRiskDataNotifier,
                   builder: (context, hasRiskData, child) {
-                    return Column(
-                      children: [
-                        _buildRiskStatusCard(context, hasRiskData),
-                        const SizedBox(height: 24),
-                        _buildStatsRow(hasRiskData),
-                      ],
+                    return ValueListenableBuilder<Map<String, dynamic>?>(
+                      valueListenable: analysisDataNotifier,
+                      builder: (context, analysisData, child) {
+                        return Column(
+                          children: [
+                            _buildRiskStatusCard(context, hasRiskData),
+                            const SizedBox(height: 24),
+                            _buildStatsRow(hasRiskData),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -139,22 +145,32 @@ class DashboardContent extends StatelessWidget {
 
   Widget _buildRiskStatusCard(BuildContext context, bool hasRiskData) {
     if (hasRiskData) {
+      final data = analysisDataNotifier.value ?? {};
+      final int score = data['score'] as int? ?? 68;
+      final String riskStatus = data['riskStatus'] as String? ?? 'Tinggi';
+      final Color riskColor = data['riskColor'] as Color? ?? const Color(0xFFEF4444);
+      final double hba1c = data['hba1c'] as double? ?? 6.5;
+
+      String label = 'Normal';
+      if (hba1c >= 6.5) label = 'Diabetes';
+      else if (hba1c >= 5.7) label = 'Prediabetes';
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFEF4444), // Red gradient for high risk
-              Color(0xFFB91C1C),
+              riskColor, 
+              riskColor.withValues(alpha: 0.8),
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              color: riskColor.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -182,7 +198,7 @@ class DashboardContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Prediabetes',
+                    label,
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       color: Colors.white,
@@ -198,7 +214,7 @@ class DashboardContent extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '68',
+                  '$score',
                   style: GoogleFonts.inter(
                     fontSize: 32,
                     color: Colors.white,
@@ -215,7 +231,7 @@ class DashboardContent extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Risiko Tinggi',
+                  'Risiko $riskStatus',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.white,
@@ -226,7 +242,9 @@ class DashboardContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Fokus hari ini: Jaga pola makan & capai target kalori Anda.',
+              score >= 60 
+                  ? 'Fokus hari ini: Jaga pola makan & capai target kalori Anda.'
+                  : 'Fokus hari ini: Pertahankan kebiasaan sehat Anda.',
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: Colors.white.withValues(alpha: 0.9),
@@ -245,7 +263,8 @@ class DashboardContent extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    // Action for viewing plan
+                    // Navigate to recommendation plan
+                    Navigator.pushNamedAndRemoveUntil(context, '/recommendation', (route) => false);
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: Row(
@@ -335,8 +354,8 @@ class DashboardContent extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
-                  // Navigate to check risk menu
-                  Navigator.pushNamed(context, '/clinical-mode');
+                  // Navigate to Analysis tab
+                  Navigator.pushNamedAndRemoveUntil(context, '/analysis', (route) => false);
                 },
                 borderRadius: BorderRadius.circular(16),
                 child: Row(

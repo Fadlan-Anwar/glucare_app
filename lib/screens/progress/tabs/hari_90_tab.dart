@@ -44,9 +44,9 @@ class _Hari90TabState extends State<Hari90Tab> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Intervensi 90 Hari', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
           const SizedBox(height: 4),
-          Text('Hari ke-5 dari 90', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMedium)),
+          Text('Hari ke-1 dari 90', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textMedium)),
           const SizedBox(height: 8),
-          Text('85 hari tersisa • Fase 1/3', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
+          Text('89 hari tersisa • Fase 1/3', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           const SizedBox(height: 6),
           ClipRRect(borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(value: 0.05, backgroundColor: Colors.grey[200], valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1E88E5)), minHeight: 4)),
@@ -59,31 +59,31 @@ class _Hari90TabState extends State<Hari90Tab> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text('Target Hari Ini', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-        Text('Hari 5', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
+        Text('Hari 1', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
       ]),
       const SizedBox(height: 16),
       Row(children: [
-        Expanded(child: _buildTargetCard(icon: '🩸', title: '18g', subtitle: '/ <30g', label: 'Gula', progress: 0.49, percentText: '49%', color: const Color(0xFF1E88E5))),
+        Expanded(child: _buildTargetCard(icon: Icons.bloodtype_rounded, title: '18g', subtitle: '/ <30g', label: 'Gula', progress: 0.49, percentText: '49%', color: const Color(0xFF1E88E5))),
         const SizedBox(width: 16),
-        Expanded(child: _buildTargetCard(icon: '🏃', title: '22 mnt', subtitle: '/ 30 mnt', label: 'Aktivitas', progress: 1.0, percentText: '100%', color: const Color(0xFF06B6D4))),
+        Expanded(child: _buildTargetCard(icon: Icons.directions_run_rounded, title: '22 mnt', subtitle: '/ 30 mnt', label: 'Aktivitas', progress: 1.0, percentText: '100%', color: const Color(0xFF06B6D4))),
       ]),
       const SizedBox(height: 16),
       Row(children: [
-        Expanded(child: _buildTargetCard(icon: '😴', title: '6.5 jam', subtitle: '/ 8 jam', label: 'Tidur', progress: 0.81, percentText: '81%', color: const Color(0xFFF59E0B))),
+        Expanded(child: _buildTargetCard(icon: Icons.bedtime_rounded, title: '6.5 jam', subtitle: '/ 8 jam', label: 'Tidur', progress: 0.81, percentText: '81%', color: const Color(0xFFF59E0B))),
         const SizedBox(width: 16),
-        Expanded(child: _buildTargetCard(icon: '💧', title: '6 gelas', subtitle: '/ 8 gelas', label: 'Air', progress: 0.75, percentText: '75%', color: const Color(0xFF3B82F6))),
+        Expanded(child: _buildTargetCard(icon: Icons.water_drop_rounded, title: '6 gelas', subtitle: '/ 8 gelas', label: 'Air', progress: 0.75, percentText: '75%', color: const Color(0xFF3B82F6))),
       ]),
     ]);
   }
 
-  Widget _buildTargetCard({required String icon, required String title, required String subtitle, required String label, required double progress, required String percentText, required Color color}) {
+  Widget _buildTargetCard({required IconData icon, required String title, required String subtitle, required String label, required double progress, required String percentText, required Color color}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(icon, style: const TextStyle(fontSize: 16)),
+          Icon(icon, color: color, size: 20),
           Text(percentText, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
         ]),
         const SizedBox(height: 12),
@@ -110,7 +110,7 @@ class _Hari90TabState extends State<Hari90Tab> {
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhaseDetailScreen())),
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip('📉 <40g'), _buildFaseChip('🏃 20 mnt'), _buildFaseChip('😴 7 jam')]),
+            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<40g'), _buildFaseChip(Icons.directions_run_rounded, '20 mnt'), _buildFaseChip(Icons.bedtime_rounded, '7 jam')]),
             const SizedBox(height: 12),
             Text('Ketuk untuk detail →', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           ])),
@@ -118,7 +118,7 @@ class _Hari90TabState extends State<Hari90Tab> {
         _buildFaseStep(number: '2', title: 'Optimalisasi Metabolik', days: 'Hari 31-60', isActive: false, onTap: () {},
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip('📉 <30g'), _buildFaseChip('🏃 200 mnt'), _buildFaseChip('😴 7.5 jam')]),
+            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<30g'), _buildFaseChip(Icons.directions_run_rounded, '200 mnt'), _buildFaseChip(Icons.bedtime_rounded, '7.5 jam')]),
             const SizedBox(height: 8),
             Text('Ketuk untuk detail →', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           ])),
@@ -126,7 +126,7 @@ class _Hari90TabState extends State<Hari90Tab> {
         _buildFaseStep(number: '3', title: 'Konsolidasi', days: 'Hari 61-90', isActive: false, onTap: () {},
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip('📉 <25g'), _buildFaseChip('🏃 250 mnt'), _buildFaseChip('😴 8 jam')]),
+            Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<25g'), _buildFaseChip(Icons.directions_run_rounded, '250 mnt'), _buildFaseChip(Icons.bedtime_rounded, '8 jam')]),
             const SizedBox(height: 8),
             Text('Ketuk untuk detail →', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           ])),
@@ -161,11 +161,19 @@ class _Hari90TabState extends State<Hari90Tab> {
     ));
   }
 
-  Widget _buildFaseChip(String text) {
+  Widget _buildFaseChip(IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFFDE68A))),
-      child: Text(text, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFD97706))));
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFFD97706)),
+          const SizedBox(width: 4),
+          Text(text, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFD97706))),
+        ],
+      )
+    );
   }
 
   Widget _buildLevelXP() {
@@ -178,7 +186,14 @@ class _Hari90TabState extends State<Hari90Tab> {
           Text('Level & XP', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
           Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFDE68A))),
-            child: Text('⚡ Level 8', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)))),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded, size: 14, color: Color(0xFFD97706)),
+                const SizedBox(width: 4),
+                Text('Level 1', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD97706))),
+              ],
+            )),
         ]),
         const SizedBox(height: 16),
         ClipRRect(borderRadius: BorderRadius.circular(4),
@@ -194,12 +209,12 @@ class _Hari90TabState extends State<Hari90Tab> {
 
   Widget _buildTugasHarian() {
     final tasks = [
-      {'icon': '🏃', 'title': 'Jalan kaki 30 menit', 'xp': '+20 XP'},
-      {'icon': '🩸', 'title': 'Batasi gula < 25g hari ini', 'xp': '+30 XP'},
-      {'icon': '💧', 'title': 'Minum air 8 gelas', 'xp': '+15 XP'},
-      {'icon': '💊', 'title': 'Konsumsi obat / suplemen', 'xp': '+20 XP'},
-      {'icon': '😴', 'title': 'Tidur 7-8 jam malam ini', 'xp': '+25 XP'},
-      {'icon': '🥗', 'title': 'Makan sayur + protein tanpa goreng', 'xp': '+30 XP'},
+      {'icon': Icons.directions_run_rounded, 'title': 'Jalan kaki 30 menit', 'xp': '+20 XP'},
+      {'icon': Icons.bloodtype_rounded, 'title': 'Batasi gula < 25g hari ini', 'xp': '+30 XP'},
+      {'icon': Icons.water_drop_rounded, 'title': 'Minum air 8 gelas', 'xp': '+15 XP'},
+      {'icon': Icons.medication_rounded, 'title': 'Konsumsi obat / suplemen', 'xp': '+20 XP'},
+      {'icon': Icons.bedtime_rounded, 'title': 'Tidur 7-8 jam malam ini', 'xp': '+25 XP'},
+      {'icon': Icons.restaurant_rounded, 'title': 'Makan sayur + protein tanpa goreng', 'xp': '+30 XP'},
     ];
     return Container(
       padding: const EdgeInsets.all(20),
@@ -221,12 +236,12 @@ class _Hari90TabState extends State<Hari90Tab> {
                   decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: done ? const Color(0xFF10B981) : Colors.grey[400]!, width: 2), color: done ? const Color(0xFF10B981) : Colors.transparent),
                   child: done ? const Icon(Icons.check, size: 16, color: Colors.white) : null),
                 const SizedBox(width: 12),
-                Text(t['icon']!, style: const TextStyle(fontSize: 18)),
+                Icon(t['icon']! as IconData, size: 20, color: const Color(0xFF3B82F6)),
                 const SizedBox(width: 12),
-                Expanded(child: Text(t['title']!, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: done ? Colors.grey[500] : AppColors.textDark, decoration: done ? TextDecoration.lineThrough : null))),
+                Expanded(child: Text(t['title'] as String, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: done ? Colors.grey[500] : AppColors.textDark, decoration: done ? TextDecoration.lineThrough : null))),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(12)),
-                  child: Text(t['xp']!, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)))),
+                  child: Text(t['xp'] as String, style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)))),
               ])));
         }),
       ]),
@@ -262,27 +277,37 @@ class _Hari90TabState extends State<Hari90Tab> {
   Widget _buildReAssessmentBanner() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFDE68A))),
+      decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFECACA))),
       child: Row(children: [
-        const Icon(Icons.sync_rounded, color: Color(0xFFD97706), size: 24),
+        const Icon(Icons.notifications_active_rounded, color: Color(0xFFEF4444), size: 24),
         const SizedBox(width: 16),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Re-Assessment Metabolik', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1F2937))),
-          Text('Belum pernah assessment', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFD97706))),
+          Text('Waktunya Re-Assessment!', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF991B1B))),
+          Text('Sudah 1 bulan berlalu.', style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFFEF4444))),
         ])),
-        const Icon(Icons.chevron_right_rounded, color: Color(0xFFD97706)),
+        ElevatedButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/analysis', (route) => false),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFEF4444),
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
+          ),
+          child: Text('Cek', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+        ),
       ]),
     );
   }
 
   Widget _buildPengingat() {
     final reminders = [
-      {'icon': '☀️', 'title': 'Cek pagi', 'subtitle': 'Log glukosa & berat badan', 'time': '07:00'},
-      {'icon': '🏃', 'title': 'Olahraga', 'subtitle': 'Pengingat aktivitas fisik', 'time': '07:30'},
-      {'icon': '🥗', 'title': 'Makan Sehat', 'subtitle': 'Pilihan makan siang sehat', 'time': '12:00'},
-      {'icon': '💊', 'title': 'Suplemen', 'subtitle': 'Konsumsi suplemen harian', 'time': '20:00'},
-      {'icon': '😴', 'title': 'Waktu Tidur', 'subtitle': 'Istirahat untuk metabolisme', 'time': '22:00'},
-      {'icon': '💧', 'title': 'Minum Air', 'subtitle': 'Target 8 gelas per hari', 'time': '10:00'},
+      {'icon': Icons.wb_sunny_rounded, 'title': 'Cek pagi', 'subtitle': 'Log glukosa & berat badan', 'time': '07:00'},
+      {'icon': Icons.directions_run_rounded, 'title': 'Olahraga', 'subtitle': 'Pengingat aktivitas fisik', 'time': '07:30'},
+      {'icon': Icons.restaurant_rounded, 'title': 'Makan Sehat', 'subtitle': 'Pilihan makan siang sehat', 'time': '12:00'},
+      {'icon': Icons.medication_rounded, 'title': 'Suplemen', 'subtitle': 'Konsumsi suplemen harian', 'time': '20:00'},
+      {'icon': Icons.bedtime_rounded, 'title': 'Waktu Tidur', 'subtitle': 'Istirahat untuk metabolisme', 'time': '22:00'},
+      {'icon': Icons.water_drop_rounded, 'title': 'Minum Air', 'subtitle': 'Target 8 gelas per hari', 'time': '10:00'},
     ];
     return Container(
       padding: const EdgeInsets.all(20),
@@ -300,13 +325,13 @@ class _Hari90TabState extends State<Hari90Tab> {
             decoration: BoxDecoration(border: Border.all(color: Colors.grey[100]!), borderRadius: BorderRadius.circular(16)),
             child: Row(children: [
               Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                child: Center(child: Text(r['icon']!, style: const TextStyle(fontSize: 20)))),
+                child: Center(child: Icon(r['icon']! as IconData, size: 20, color: const Color(0xFF1E88E5)))),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r['title']!, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-                Text(r['subtitle']!, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500])),
+                Text(r['title'] as String, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                Text(r['subtitle'] as String, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500])),
               ])),
-              Text(r['time']!, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400])),
+              Text(r['time'] as String, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400])),
               const SizedBox(width: 12),
               Switch(value: isOn, onChanged: (v) => setState(() => _reminderToggles[i] = v), activeColor: const Color(0xFF1E88E5)),
             ]));

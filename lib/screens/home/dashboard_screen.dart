@@ -23,7 +23,7 @@ class DashboardContent extends StatelessWidget {
         ),
         Expanded(
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

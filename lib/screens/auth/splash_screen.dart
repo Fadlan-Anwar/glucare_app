@@ -48,11 +48,17 @@ class _SplashScreenState extends State<SplashScreen>
     final user = authService.currentUser;
 
     if (user != null) {
-      // Load user data into UserProvider
+      // Load full user data into UserProvider
+      final userData = await authService.fetchUserData();
+      
       UserProvider.updateProfile(
-        name: user.displayName ?? 'User',
+        name: userData?['fullName'] ?? user.displayName ?? 'User',
         email: user.email ?? '',
+        gender: userData?['gender'] ?? '',
+        phone: userData?['phone'] ?? '',
+        birthDate: userData?['birthDate'] ?? '',
       );
+      
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }

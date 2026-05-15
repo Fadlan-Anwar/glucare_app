@@ -22,11 +22,11 @@ class UserData {
 class UserProvider {
   static final ValueNotifier<UserData> userNotifier = ValueNotifier<UserData>(
     UserData(
-      name: 'Fadlan',
-      gender: 'Laki-laki',
-      phone: '812-3456-7890',
-      email: 'fadlanf553@gmail.com',
-      birthDate: '01-02-2003',
+      name: '',
+      gender: '',
+      phone: '',
+      email: '',
+      birthDate: '',
       profileImage: null,
     ),
   );

@@ -6,6 +6,7 @@ import 'terms_of_service_screen.dart';
 import 'notification_preference_screen.dart';
 import 'help_support_screen.dart';
 import 'change_password_screen.dart';
+import 'change_email_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -51,6 +52,12 @@ class SettingsScreen extends StatelessWidget {
                 icon: Icons.lock_outline_rounded,
                 title: "Ubah Kata Sandi",
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen())),
+                showBorder: true,
+              ),
+              _SettingItemData(
+                icon: Icons.alternate_email_rounded,
+                title: "Ubah Email",
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangeEmailScreen())),
                 showBorder: true,
               ),
               _SettingItemData(

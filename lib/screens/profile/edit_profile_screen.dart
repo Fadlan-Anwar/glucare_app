@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../auth/auth_service.dart';
+import 'settings/change_email_screen.dart';
 import '../../core/user_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
   late TextEditingController _nameController;
   late TextEditingController _genderController;
@@ -133,16 +136,77 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         });
   }
 
-  void _saveProfile() {
-    UserProvider.updateProfile(
-      name: _nameController.text,
-      gender: _genderController.text,
-      phone: _phoneController.text,
-      email: _emailController.text,
-      birthDate: _birthDateController.text,
-      profileImage: _image,
-    );
-    Navigator.pop(context);
+  Future<void> _saveProfile() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    final fullName = _nameController.text.trim();
+    final gender = _genderController.text;
+    final phone = _phoneController.text.trim();
+    final birthDate = _birthDateController.text;
+    
+    debugPrint("Attempting to save profile: name=$fullName, gender=$gender, phone=$phone, birthDate=$birthDate");
+
+    try {
+      final authService = AuthService();
+      final currentEmail = UserProvider.userNotifier.value.email;
+      final newEmail = _emailController.text.trim();
+
+      // 1. Update Profile (Name, Gender, etc.)
+      await authService.updateProfile(
+        fullName: fullName,
+        gender: gender,
+        phone: phone,
+        birthDate: birthDate,
+      );
+
+      // 2. Update local state
+      UserProvider.updateProfile(
+        name: _nameController.text.trim(),
+        gender: _genderController.text,
+        phone: _phoneController.text.trim(),
+        email: newEmail,
+        birthDate: _birthDateController.text,
+        profileImage: _image,
+      );
+
+      // 3. Handle Email change if needed (requires password usually)
+      if (newEmail != currentEmail) {
+        // We update Firestore but Firebase Auth email needs verification/re-auth
+        // For now, we'll just show a note if email was changed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profil diperbarui. Untuk mengubah email secara permanen, silakan verifikasi email baru Anda.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profil berhasil diperbarui'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint("Error in _saveProfile: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -217,7 +281,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _buildGenderDropdown(),
             
             _buildInputLabel("Email"),
-            _buildTextField(_emailController, keyboardType: TextInputType.emailAddress),
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangeEmailScreen())),
+              child: AbsorbPointer(
+                child: _buildTextField(
+                  _emailController, 
+                  keyboardType: TextInputType.emailAddress,
+                  suffixIcon: const Icon(Icons.open_in_new_rounded, size: 18, color: AppColors.mainBlue),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 4),
+              child: Text(
+                "* Email hanya dapat diubah melalui verifikasi keamanan",
+                style: GoogleFonts.poppins(fontSize: 11, color: Colors.orange[800], fontWeight: FontWeight.w500),
+              ),
+            ),
             
             _buildInputLabel("Nomor Handphone"),
             _buildPhoneField(_phoneController),
@@ -238,14 +318,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: Text(
-                  "Simpan Perubahan",
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        "Simpan Perubahan",
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 40),
@@ -260,7 +349,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Text(label,
           style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF4B5563))));
 
-  Widget _buildTextField(TextEditingController controller, {TextInputType? keyboardType}) => TextField(
+  Widget _buildTextField(TextEditingController controller, {TextInputType? keyboardType, Widget? suffixIcon}) => TextField(
       controller: controller,
       keyboardType: keyboardType,
       style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF111827)),
@@ -268,6 +357,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           filled: true,
           fillColor: const Color(0xFFF9FAFB),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          suffixIcon: suffixIcon,
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFE5E7EB))),

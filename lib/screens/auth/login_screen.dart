@@ -44,10 +44,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = userCredential.user;
       if (user != null) {
-        // Update UserProvider with firebase user info
+        // Fetch full user data from Firestore
+        final userData = await authService.fetchUserData();
+        
+        // Update UserProvider with full info
         UserProvider.updateProfile(
-          name: user.displayName ?? 'User',
+          name: userData?['fullName'] ?? user.displayName ?? 'User',
           email: user.email ?? '',
+          gender: userData?['gender'] ?? '',
+          phone: userData?['phone'] ?? '',
+          birthDate: userData?['birthDate'] ?? '',
         );
       }
 

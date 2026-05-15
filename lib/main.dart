@@ -23,6 +23,7 @@ import 'screens/analysis/questionnaire_screen.dart';
 // Profile sub-screens (untuk push dari dalam tab)
 import 'screens/profile/edit_profile_screen.dart';
 import 'screens/profile/settings/settings_screen.dart';
+import 'screens/profile/settings/change_email_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

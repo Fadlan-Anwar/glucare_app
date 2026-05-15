@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../core/auth_service.dart';
+import '../../auth/auth_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -40,24 +40,30 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    final result = await AuthService.changePassword(
-      oldPassword: _oldPasswordController.text,
-      newPassword: _newPasswordController.text,
-    );
+    try {
+      final authService = AuthService();
+      await authService.changePassword(
+        oldPassword: _oldPasswordController.text,
+        newPassword: _newPasswordController.text,
+      );
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Kata sandi berhasil diubah!'), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
-    } else {
+    } catch (e) {
+      setState(() => _isLoading = false);
       if (mounted) {
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.redAccent),
         );
       }
     }

@@ -80,14 +80,50 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      if (email.isEmpty || password.isEmpty) {
+        throw Exception('Email dan kata sandi harus diisi');
+      }
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
   // LOGOUT
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  // ALIAS FOR SIGNOUT
+  static Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  // CHANGE PASSWORD
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null || user.email == null) {
+        throw Exception('User tidak ditemukan');
+      }
+
+      // Re-authenticate user
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: oldPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 }

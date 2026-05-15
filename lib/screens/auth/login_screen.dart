@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/auth_service.dart';
+import 'auth_service.dart';
 import '../../core/user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,39 +23,55 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_isLoading) return;
 
+    if (_loginEmailController.text.trim().isEmpty || _loginPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email dan kata sandi harus diisi'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    final result = await AuthService.login(
-      email: _loginEmailController.text.trim(),
-      password: _loginPasswordController.text,
-    );
+    try {
+      final authService = AuthService();
+      final userCredential = await authService.signIn(
+        email: _loginEmailController.text.trim(),
+        password: _loginPasswordController.text,
+      );
 
-    setState(() => _isLoading = false);
-
-    if (result['success'] == true) {
-      // Load user data into UserProvider
-      final userData = await AuthService.getCurrentUser();
-      if (userData != null) {
+      final user = userCredential.user;
+      if (user != null) {
+        // Update UserProvider with firebase user info
         UserProvider.updateProfile(
-          name: userData['name'] ?? 'User',
-          email: userData['email'] ?? '',
+          name: user.displayName ?? 'User',
+          email: user.email ?? '',
         );
       }
 
+      setState(() => _isLoading = false);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
+          const SnackBar(
+            content: Text('Login berhasil!'),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
-    } else {
+    } catch (e) {
+      setState(() => _isLoading = false);
       if (mounted) {
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
+            content: Text(errorMessage),
             backgroundColor: Colors.redAccent,
           ),
         );

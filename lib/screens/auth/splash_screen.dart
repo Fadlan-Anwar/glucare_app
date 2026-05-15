@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/auth_service.dart';
+import 'auth_service.dart';
 import '../../core/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -44,18 +44,15 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
 
-    // Check if user has a valid token
-    final isLoggedIn = await AuthService.isLoggedIn();
+    final authService = AuthService();
+    final user = authService.currentUser;
 
-    if (isLoggedIn) {
+    if (user != null) {
       // Load user data into UserProvider
-      final userData = await AuthService.getCurrentUser();
-      if (userData != null) {
-        UserProvider.updateProfile(
-          name: userData['name'] ?? 'User',
-          email: userData['email'] ?? '',
-        );
-      }
+      UserProvider.updateProfile(
+        name: user.displayName ?? 'User',
+        email: user.email ?? '',
+      );
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }

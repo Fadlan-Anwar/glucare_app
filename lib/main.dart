@@ -38,7 +38,7 @@ class GluCareApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authStateAsync = ref.watch(authStateChangesProvider);
+
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -48,20 +48,7 @@ class GluCareApp extends ConsumerWidget {
         useMaterial3: true,
         fontFamily: 'Sans-Serif',
       ),
-      home: authStateAsync.when(
-        loading: () => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-        error: (error, stack) => const Scaffold(
-          body: Center(child: Text('Gagal memuat status login')),
-        ),
-        data: (user) {
-          if (user != null && user.uid.isNotEmpty) {
-            return const MainNavShell(initialIndex: 0);
-          }
-          return const LoginScreen();
-        },
-      ),
+      home: const SplashScreen(),
         routes: {
         '/splash': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingScreen(),

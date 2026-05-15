@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/user_provider.dart';
-import '../../core/auth_service.dart';
+import '../auth/auth_service.dart';
 
 class ProfileContent extends StatelessWidget {
   const ProfileContent({super.key});

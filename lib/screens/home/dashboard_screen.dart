@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/user_provider.dart';
+import '../auth/auth_provider.dart';
 
-class DashboardContent extends StatelessWidget {
+class DashboardContent extends ConsumerWidget {
   static final ValueNotifier<bool> hasRiskDataNotifier = ValueNotifier<bool>(false);
   static final ValueNotifier<Map<String, dynamic>?> analysisDataNotifier = ValueNotifier<Map<String, dynamic>?>(null);
 
   const DashboardContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -18,7 +20,7 @@ class DashboardContent extends StatelessWidget {
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.only(left: 24, right: 24, top: 20),
-            child: _buildHeader(),
+            child: _buildHeader(ref),
           ),
         ),
         Expanded(
@@ -57,10 +59,120 @@ class DashboardContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
-    return ValueListenableBuilder<UserData>(
-      valueListenable: UserProvider.userNotifier,
-      builder: (context, userData, child) {
+  Widget _buildHeader(WidgetRef ref) {
+    final userProfileAsync = ref.watch(userProfileProvider);
+
+    return userProfileAsync.when(
+      loading: () => Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[200],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 14,
+                  width: 60,
+                  color: Colors.grey[200],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 18,
+                  width: 120,
+                  color: Colors.grey[200],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[200],
+            ),
+          ),
+        ],
+      ),
+      error: (error, stack) => Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: const DecorationImage(
+                image: NetworkImage('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Good Morning',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                Text(
+                  'Hello, pengguna!',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Icon(Icons.notifications_none_rounded,
+                    color: Colors.grey[700], size: 24),
+              ),
+              Positioned(
+                right: 2,
+                top: 2,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      data: (userProfile) {
+        final fullName = userProfile?['fullName'] ?? 'User';
+
         return Row(
           children: [
             Container(
@@ -68,11 +180,8 @@ class DashboardContent extends StatelessWidget {
               height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: userData.profileImage != null
-                      ? FileImage(userData.profileImage!)
-                      : const NetworkImage('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png')
-                          as ImageProvider,
+                image: const DecorationImage(
+                  image: NetworkImage('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'),
                   fit: BoxFit.cover,
                 ),
                 boxShadow: [
@@ -98,7 +207,7 @@ class DashboardContent extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Hello, ${userData.name}!',
+                    'Hello, $fullName!',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,

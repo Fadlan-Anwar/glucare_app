@@ -1,4 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Core
 import 'core/constants/app_colors.dart';
@@ -10,6 +13,7 @@ import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/auth_choice_screen.dart';
+import 'screens/auth/auth_provider.dart';
 
 // Analysis Screens (untuk push dari dalam tab)
 import 'screens/analysis/clinical_mode_screen.dart';
@@ -20,15 +24,22 @@ import 'screens/analysis/questionnaire_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
 import 'screens/profile/settings/settings_screen.dart';
 
-void main() {
-  runApp(const GluCareApp());
-}
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class GluCareApp extends StatelessWidget {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(const ProviderScope(child: GluCareApp()));
+}
+class GluCareApp extends ConsumerWidget {
   const GluCareApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authStateAsync = ref.watch(authStateChangesProvider);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GluCare',
@@ -37,32 +48,48 @@ class GluCareApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Sans-Serif',
       ),
-      initialRoute: '/splash',
-      
-      routes: {
-        // --- Auth flow (halaman terpisah dengan transisi) ---
+      home: authStateAsync.when(
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        error: (error, stack) => const Scaffold(
+          body: Center(child: Text('Gagal memuat status login')),
+        ),
+        data: (user) {
+          if (user != null && user.uid.isNotEmpty) {
+            return const MainNavShell(initialIndex: 0);
+          }
+          return const LoginScreen();
+        },
+      ),
+        routes: {
         '/splash': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
-        '/': (context) => const LoginScreen(), 
-        '/login': (context) => const LoginScreen(), 
-        '/auth-choice': (context) => const AuthChoiceScreen(),
+
+         '/login': (context) => const LoginScreen(),
+         '/auth-choice': (context) => const AuthChoiceScreen(),
         '/register': (context) => const RegisterScreen(),
 
-        // --- Main app (satu shell, 5 tab instan) ---
-        '/dashboard': (context) => const MainNavShell(initialIndex: 0),
-        '/analysis': (context) => const MainNavShell(initialIndex: 1),
-        '/recommendation': (context) => const MainNavShell(initialIndex: 2),
-        '/progress': (context) => const MainNavShell(initialIndex: 3),
-        '/profile': (context) => const MainNavShell(initialIndex: 4),
+         '/dashboard': (context) => const MainNavShell(initialIndex: 0),
+         '/analysis': (context) => const MainNavShell(initialIndex: 1),
+         '/recommendation': (context) => const MainNavShell(initialIndex: 2),
+         '/progress': (context) => const MainNavShell(initialIndex: 3),
+         '/profile': (context) => const MainNavShell(initialIndex: 4),
 
-        // --- Sub-halaman (push di atas shell) ---
-        '/clinical-mode': (context) => const ClinicalModeScreen(),
-        '/analysis-result': (context) => const AnalysisResultScreen(
-              hba1c: 0.0, gulaDarah: 0, berat: 0.0, tinggi: 1.0),
-        '/questionnaire': (context) => const QuestionnaireScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/edit-profile': (context) => const EditProfileScreen(),
-      },
+           '/clinical-mode': (context) => const ClinicalModeScreen(),
+
+           '/analysis-result': (context) =>
+               const AnalysisResultScreen(
+                 hba1c: 0.0,
+                  gulaDarah: 0,
+                     berat: 0.0,
+                       tinggi: 1.0,
+             ),
+
+          '/questionnaire': (context) => const QuestionnaireScreen(),
+           '/settings': (context) => const SettingsScreen(),
+           '/edit-profile': (context) => const EditProfileScreen(),
+       },
     );
   }
 }

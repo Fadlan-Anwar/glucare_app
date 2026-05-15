@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/auth_service.dart';
+import 'auth_service.dart';
 import '../../core/user_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -21,68 +21,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  Future<void> _handleRegister() async {
-    if (_isLoading) return;
+Future<void> _handleRegister() async {
+  if (_isLoading) return;
 
-    // Validate confirm password match
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Konfirmasi kata sandi tidak cocok'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
+  if (_passwordController.text != _confirmPasswordController.text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Konfirmasi kata sandi tidak cocok'),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+    return;
+  }
 
-    // Validate terms agreement
-    if (!_agreeTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Anda harus menyetujui Syarat & Ketentuan'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
+  if (!_agreeTerms) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Anda harus menyetujui Syarat & Ketentuan'),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+    return;
+  }
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    final result = await AuthService.register(
-      name: _nameController.text.trim(),
+  try {
+    final authService = AuthService();
+
+    await authService.signUp(
+      fullName: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
 
+    UserProvider.updateProfile(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+    );
+
     setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
-      // Update UserProvider with registered data
-      UserProvider.updateProfile(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registrasi berhasil'),
+          backgroundColor: Colors.green,
+        ),
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    }
+  } catch (e) {
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

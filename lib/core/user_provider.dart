@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class UserData {
   String name;
@@ -8,6 +11,7 @@ class UserData {
   String email;
   String birthDate;
   File? profileImage;
+  String? profileImageUrl;
 
   UserData({
     required this.name,
@@ -16,6 +20,7 @@ class UserData {
     required this.email,
     required this.birthDate,
     this.profileImage,
+    this.profileImageUrl,
   });
 }
 
@@ -28,6 +33,7 @@ class UserProvider {
       email: '',
       birthDate: '',
       profileImage: null,
+      profileImageUrl: null,
     ),
   );
 
@@ -38,6 +44,7 @@ class UserProvider {
     String? email,
     String? birthDate,
     File? profileImage,
+    String? profileImageUrl,
   }) {
     final current = userNotifier.value;
     userNotifier.value = UserData(
@@ -46,8 +53,57 @@ class UserProvider {
       phone: phone ?? current.phone,
       email: email ?? current.email,
       birthDate: birthDate ?? current.birthDate,
-      // Pass the new image, or keep current if not provided
       profileImage: profileImage != null ? profileImage : current.profileImage,
+      profileImageUrl: profileImageUrl ?? current.profileImageUrl,
     );
+  }
+
+  // Save profile image to local app documents directory and remember path in prefs
+  static Future<File?> persistLocalProfileImage(String uid, File file) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = directory.path;
+      final newFile = await file.copy('$path/profile_$uid.jpg');
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('profile_path_$uid', newFile.path);
+      
+      updateProfile(profileImage: newFile);
+      return newFile;
+    } catch (e) {
+      debugPrint("Error saving local profile image: $e");
+      return null;
+    }
+  }
+
+  // Load profile image path from prefs
+  static Future<File?> loadLocalProfileImage(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final path = prefs.getString('profile_path_$uid');
+      if (path != null) {
+        final file = File(path);
+        if (await file.exists()) {
+          updateProfile(profileImage: file);
+          return file;
+        }
+      }
+      updateProfile(profileImage: null);
+      return null;
+    } catch (e) {
+      debugPrint("Error loading local profile image: $e");
+      return null;
+    }
+  }
+
+  // Clear profile image path from prefs
+  static Future<void> clearLocalProfileImage(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('profile_path_$uid');
+      updateProfile(profileImage: null);
+    } catch (e) {
+      debugPrint("Error clearing local profile image: $e");
+    }
   }
 }

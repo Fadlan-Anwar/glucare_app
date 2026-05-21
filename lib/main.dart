@@ -25,6 +25,8 @@ import 'screens/profile/edit_profile_screen.dart';
 import 'screens/profile/settings/settings_screen.dart';
 import 'screens/profile/settings/change_email_screen.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -47,7 +49,9 @@ class GluCareApp extends ConsumerWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.mainBlue),
         useMaterial3: true,
-        fontFamily: 'Sans-Serif',
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
       home: const SplashScreen(),
         routes: {

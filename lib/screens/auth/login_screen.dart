@@ -54,7 +54,11 @@ class _LoginScreenState extends State<LoginScreen> {
           gender: userData?['gender'] ?? '',
           phone: userData?['phone'] ?? '',
           birthDate: userData?['birthDate'] ?? '',
+          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
         );
+        
+        // Load local profile image path if it exists
+        await UserProvider.loadLocalProfileImage(user.uid);
       }
 
       setState(() => _isLoading = false);
@@ -67,6 +71,124 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
         Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+      final userCredential = await authService.signInWithGoogle();
+
+      if (userCredential != null && userCredential.user != null) {
+        final user = userCredential.user!;
+        // Fetch full user data from Firestore
+        final userData = await authService.fetchUserData();
+        
+        // Update UserProvider with full info
+        UserProvider.updateProfile(
+          name: userData?['fullName'] ?? user.displayName ?? 'User',
+          email: user.email ?? '',
+          gender: userData?['gender'] ?? '',
+          phone: userData?['phone'] ?? '',
+          birthDate: userData?['birthDate'] ?? '',
+          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
+        );
+
+        // Load local profile image path if it exists
+        await UserProvider.loadLocalProfileImage(user.uid);
+
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login dengan Google berhasil!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        // user canceled or failed
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleFacebookLogin() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+      final userCredential = await authService.signInWithFacebook();
+
+      if (userCredential != null && userCredential.user != null) {
+        final user = userCredential.user!;
+        // Fetch full user data from Firestore
+        final userData = await authService.fetchUserData();
+        
+        // Update UserProvider with full info
+        UserProvider.updateProfile(
+          name: userData?['fullName'] ?? user.displayName ?? 'User',
+          email: user.email ?? '',
+          gender: userData?['gender'] ?? '',
+          phone: userData?['phone'] ?? '',
+          birthDate: userData?['birthDate'] ?? '',
+          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
+        );
+
+        // Load local profile image path if it exists
+        await UserProvider.loadLocalProfileImage(user.uid);
+
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login dengan Facebook berhasil!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        // user canceled or failed
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -343,7 +465,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   Expanded(
                                     child: OutlinedButton(
-                                      onPressed: () {},
+                                      onPressed: _isLoading ? null : _handleGoogleLogin,
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -373,7 +495,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: OutlinedButton(
-                                      onPressed: () {},
+                                      onPressed: _isLoading ? null : _handleFacebookLogin,
                                       style: OutlinedButton.styleFrom(
                                         padding: const EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

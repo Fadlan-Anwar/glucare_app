@@ -62,9 +62,11 @@ class ProfileContent extends StatelessWidget {
           backgroundColor: const Color(0xFFF3F4F6),
           backgroundImage: userData.profileImage != null
               ? FileImage(userData.profileImage!)
-              : const NetworkImage(
-                  'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
-                ) as ImageProvider,
+              : (userData.profileImageUrl != null
+                  ? NetworkImage(userData.profileImageUrl!)
+                  : const NetworkImage(
+                      'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+                    ) as ImageProvider),
         ),
         const SizedBox(height: 16),
         Text(

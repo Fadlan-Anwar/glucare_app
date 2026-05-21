@@ -57,7 +57,11 @@ class _SplashScreenState extends State<SplashScreen>
         gender: userData?['gender'] ?? '',
         phone: userData?['phone'] ?? '',
         birthDate: userData?['birthDate'] ?? '',
+        profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
       );
+      
+      // Load local profile image path if it exists
+      await UserProvider.loadLocalProfileImage(user.uid);
       
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');

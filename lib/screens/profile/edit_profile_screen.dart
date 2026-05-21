@@ -149,8 +149,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final authService = AuthService();
+      final user = authService.currentUser;
       final currentEmail = UserProvider.userNotifier.value.email;
       final newEmail = _emailController.text.trim();
+
+      // Persist profile image locally if changed
+      if (user != null) {
+        if (_image != null && _image != UserProvider.userNotifier.value.profileImage) {
+          await UserProvider.persistLocalProfileImage(user.uid, _image!);
+        } else if (_image == null) {
+          await UserProvider.clearLocalProfileImage(user.uid);
+        }
+      }
 
       // 1. Update Profile (Name, Gender, etc.)
       await authService.updateProfile(
@@ -167,7 +177,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phone: _phoneController.text.trim(),
         email: newEmail,
         birthDate: _birthDateController.text,
-        profileImage: _image,
       );
 
       // 3. Handle Email change if needed (requires password usually)
@@ -211,6 +220,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userData = UserProvider.userNotifier.value;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -245,8 +255,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       radius: 50,
                       backgroundImage: _image != null
                           ? FileImage(_image!)
-                          : const AssetImage('assets/images/profile_user.png')
-                              as ImageProvider),
+                          : (userData.profileImageUrl != null
+                              ? NetworkImage(userData.profileImageUrl!)
+                              : const AssetImage('assets/images/profile_user.png')
+                                  as ImageProvider)),
                   Positioned(
                       bottom: 0,
                       right: 0,

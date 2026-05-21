@@ -12,7 +12,20 @@
           "package_name": "com.example.glucare_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "740953369648-v5ah471a0r4udneg7iuj1v6dhlc87ltt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.glucare_app",
+            "certificate_hash": "221ee21fb48c4deb27d3394e2669a698a9e64ebf"
+          }
+        },
+        {
+          "client_id": "740953369648-d8no5la6nme2gcddjf387f2ufigpvpj0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCOP2YAk7WVVmv5lhcNfN0A_mday9E1iro"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "740953369648-d8no5la6nme2gcddjf387f2ufigpvpj0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "740953369648-pqcbb3ppovec08ni7b6lskg8c9rfhr84.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.glucareApp"
+              }
+            }
+          ]
         }
       }
     }

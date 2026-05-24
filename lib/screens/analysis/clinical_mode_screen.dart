@@ -237,10 +237,10 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                 child: TextField(
                   controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.grey[500],
-                  ),
+                style: GoogleFonts.poppins(
+                 fontSize: 15,
+                    color: Colors.black, 
+                    ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

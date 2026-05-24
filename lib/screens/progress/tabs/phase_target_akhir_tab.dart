@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class PhaseTargetAkhirTab extends StatelessWidget {
-  const PhaseTargetAkhirTab({super.key});
+  final int phase;
 
+  const PhaseTargetAkhirTab({
+    super.key,
+    required this.phase,
+  });
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
-import '../phase_detail_screen.dart';
+import '../phase1_detail_screen.dart';
+import '../phase2_detail_screen.dart';
+import '../phase3_detail_screen.dart';
+
 
 class Hari90Tab extends StatefulWidget {
   const Hari90Tab({super.key});
@@ -106,8 +109,11 @@ class _Hari90TabState extends State<Hari90Tab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Fase Intervensi', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
         const SizedBox(height: 16),
-        _buildFaseStep(number: '1', title: 'Stabilisasi Dasar', days: 'Hari 1-30', isActive: true,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhaseDetailScreen())),
+        _buildFaseStep(
+         number: '1',title: 'Stabilisasi Dasar',days: 'Hari 1-30',isActive: true,
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PhaseDetailScreen(),
+    ),
+  ),
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<40g'), _buildFaseChip(Icons.directions_run_rounded, '20 mnt'), _buildFaseChip(Icons.bedtime_rounded, '7 jam')]),
@@ -115,7 +121,17 @@ class _Hari90TabState extends State<Hari90Tab> {
             Text('Ketuk untuk detail →', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           ])),
         const SizedBox(height: 16),
-        _buildFaseStep(number: '2', title: 'Optimalisasi Metabolik', days: 'Hari 31-60', isActive: false, onTap: () {},
+        _buildFaseStep(
+  number: '2',
+  title: 'Optimalisasi Metabolik',
+  days: 'Hari 31-60',
+  isActive: false,
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const Phase2Screen(),
+    ),
+  ),
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<30g'), _buildFaseChip(Icons.directions_run_rounded, '200 mnt'), _buildFaseChip(Icons.bedtime_rounded, '7.5 jam')]),
@@ -123,7 +139,17 @@ class _Hari90TabState extends State<Hari90Tab> {
             Text('Ketuk untuk detail →', style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
           ])),
         const SizedBox(height: 16),
-        _buildFaseStep(number: '3', title: 'Konsolidasi', days: 'Hari 61-90', isActive: false, onTap: () {},
+        _buildFaseStep(
+  number: '3',
+  title: 'Konsolidasi',
+  days: 'Hari 61-90',
+  isActive: false,
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const Phase3Screen(),
+    ),
+  ),
           content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [_buildFaseChip(Icons.trending_down_rounded, '<25g'), _buildFaseChip(Icons.directions_run_rounded, '250 mnt'), _buildFaseChip(Icons.bedtime_rounded, '8 jam')]),

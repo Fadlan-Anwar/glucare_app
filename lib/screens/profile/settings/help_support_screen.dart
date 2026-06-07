@@ -1,53 +1,284 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class HelpSupportScreen extends StatelessWidget {
+class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
 
   @override
+  State<HelpSupportScreen> createState() => _HelpSupportScreenState();
+}
+
+class _HelpSupportScreenState extends State<HelpSupportScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
+  final List<_FAQItem> _allFAQs = [
+    _FAQItem(
+      question: "Bagaimana cara melakukan analisis risiko?",
+      answer: "Pilih menu 'Analisis AI' pada halaman utama, lalu pilih 'Data Klinis' untuk hasil lab atau 'Mode Kuesioner' untuk menganalisis risiko diabetes berdasarkan gaya hidup Anda.",
+    ),
+    _FAQItem(
+      question: "Bagaimana cara Login?",
+      answer: "Masukkan Email dan Password yang telah terdaftar pada halaman login, lalu klik tombol 'Masuk'. Anda juga dapat masuk menggunakan Google.",
+    ),
+    _FAQItem(
+      question: "Lupa Password",
+      answer: "Klik tombol 'Lupa Password' pada halaman login, masukkan email terdaftar Anda, dan ikuti instruksi pemulihan yang dikirim ke email tersebut.",
+    ),
+    _FAQItem(
+      question: "Bagaimana cara mengubah foto profil?",
+      answer: "Buka menu 'Profil' di navigasi bawah, klik 'Edit Profil', lalu ketuk foto profil Anda untuk mengambil foto baru atau memilih gambar dari galeri Anda.",
+    ),
+    _FAQItem(
+      question: "Apakah data kesehatan saya aman?",
+      answer: "Ya, seluruh data klinis, kuesioner, dan informasi pribadi Anda disimpan dengan enkripsi aman di database kami dan tidak akan dibagikan kepada pihak ketiga.",
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final filteredFAQs = _allFAQs
+        .where((faq) =>
+            faq.question.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            faq.answer.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+
     return Scaffold(
-      backgroundColor: AppColors.settingsBg,
-      body: Column(children: [
-        Container(width: double.infinity, height: 160,
-          decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.gradientBlueLight, AppColors.mainBlue]), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
-          child: SafeArea(child: Stack(children: [
-            Positioned(top: 10, left: 10, child: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 22), onPressed: () => Navigator.pop(context))),
-            const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.help_outline, color: Colors.black, size: 28), SizedBox(width: 10), Text("Help & Support", style: TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold))]))),
-          ]))),
-        Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
-          TextField(decoration: InputDecoration(hintText: "Cari bantuan...", prefixIcon: const Icon(Icons.search, color: Colors.grey), filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 15), border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none))),
-          const SizedBox(height: 25),
-          Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildFAQItem("Bagaimana cara Login?", "Masukan Email & Pasword lalu Klik Login"),
-              const Divider(height: 30),
-              _buildFAQItem("Lupa Password", "Klik \"Forgot Pasword\" Lalu ikuti intruksi."),
-            ])),
-          const SizedBox(height: 25),
-          Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-            child: Column(children: [
-              _buildContactItem(Icons.email_outlined, "Email:", "layanannusahealt228@gmail.com"), const SizedBox(height: 15),
-              _buildContactItem(Icons.phone_android, "Whatsapp:", "+62812-XXXX-XXXX"),
-            ])),
-          const SizedBox(height: 30),
-          SizedBox(width: double.infinity, child: Container(
-            decoration: BoxDecoration(gradient: const LinearGradient(colors: [AppColors.gradientBlueLight, AppColors.mainBlue]), borderRadius: BorderRadius.circular(15)),
-            child: ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, padding: const EdgeInsets.symmetric(vertical: 15)),
-              child: const Text("HUBUNGI KAMI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))),
-        ]))),
-      ]),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF111827), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Pusat Bantuan",
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+                style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF111827)),
+                decoration: InputDecoration(
+                  hintText: "Cari bantuan...",
+                  hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[400]),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, color: Color(0xFF9CA3AF), size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = "";
+                            });
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+            
+            Text(
+              "PERTANYAAN POPULER",
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            if (filteredFAQs.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+                ),
+                child: Text(
+                  "Bantuan tidak ditemukan",
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: const Color(0xFF6B7280),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+                ),
+                child: Column(
+                  children: List.generate(filteredFAQs.length, (index) {
+                    return _buildFAQTile(
+                      filteredFAQs[index],
+                      showBorder: index < filteredFAQs.length - 1,
+                    );
+                  }),
+                ),
+              ),
+
+            const SizedBox(height: 28),
+            
+            Text(
+              "HUBUNGI KONTAK KAMI",
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              ),
+              child: Column(
+                children: [
+                  _buildContactTile(
+                    Icons.email_outlined,
+                    "Kirim Email",
+                    "Glucare@gmail.com",
+                    showBorder: true,
+                  ),
+                  _buildContactTile(
+                    Icons.chat_bubble_outline_rounded,
+                    "Hubungi WhatsApp",
+                    "+62 812-3456-7890",
+                    showBorder: false,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildFAQItem(String question, String answer) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Row(children: [const Icon(Icons.help, size: 18, color: Colors.blue), const SizedBox(width: 8), Text(question, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))]),
-    const SizedBox(height: 10),
-    Row(children: [const Icon(Icons.trending_flat, size: 18, color: Colors.blue), const SizedBox(width: 10), Expanded(child: Text(answer, style: const TextStyle(fontSize: 13)))]),
-  ]);
+  Widget _buildFAQTile(_FAQItem faq, {required bool showBorder}) {
+    return Container(
+      decoration: BoxDecoration(
+        border: showBorder ? const Border(bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1.5)) : null,
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: const Color(0xFF4B5563),
+          collapsedIconColor: Colors.grey[400],
+          title: Text(
+            faq.question,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF374151),
+            ),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          expandedAlignment: Alignment.topLeft,
+          children: [
+            Text(
+              faq.answer,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF6B7280),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _buildContactItem(IconData icon, String label, String value) => Row(children: [
-    Icon(icon, color: Colors.blue, size: 24), const SizedBox(width: 12),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), Text(value, style: const TextStyle(fontSize: 13, color: Colors.blue, decoration: TextDecoration.underline))])),
-  ]);
+  Widget _buildContactTile(IconData icon, String label, String value, {required bool showBorder}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        border: showBorder ? const Border(bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1.5)) : null,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF4B5563), size: 22),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: const Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF111827),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: Colors.grey[400], size: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class _FAQItem {
+  final String question;
+  final String answer;
+
+  _FAQItem({required this.question, required this.answer});
 }

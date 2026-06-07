@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
+import 'custom_user.dart';
 import '../../core/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -45,19 +46,24 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final authService = AuthService();
-    final user = authService.currentUser;
+    final user = await authService.checkCurrentUser();
 
     if (user != null) {
       // Load full user data into UserProvider
       final userData = await authService.fetchUserData();
       
+      UserProvider.clearProfile();
       UserProvider.updateProfile(
-        name: userData?['fullName'] ?? user.displayName ?? 'User',
-        email: user.email ?? '',
+        name: userData?['fullname'] ?? user.displayName ?? 'User',
+        email: user.email,
         gender: userData?['gender'] ?? '',
         phone: userData?['phone'] ?? '',
-        birthDate: userData?['birthDate'] ?? '',
-        profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
+        birthDate: userData?['birth_date'] ?? '',
+        profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
+            ? (userData['profile_image'].toString().startsWith('http')
+                ? userData['profile_image']
+                : 'http://10.0.2.2:5000${userData['profile_image']}')
+            : null,
       );
       
       // Load local profile image path if it exists

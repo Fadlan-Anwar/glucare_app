@@ -37,6 +37,18 @@ class UserProvider {
     ),
   );
 
+  static void clearProfile() {
+    userNotifier.value = UserData(
+      name: '',
+      gender: '',
+      phone: '',
+      email: '',
+      birthDate: '',
+      profileImage: null,
+      profileImageUrl: null,
+    );
+  }
+
   static void updateProfile({
     String? name,
     String? gender,
@@ -45,6 +57,8 @@ class UserProvider {
     String? birthDate,
     File? profileImage,
     String? profileImageUrl,
+    bool clearLocalImage = false,
+    bool clearImageUrl = false,
   }) {
     final current = userNotifier.value;
     userNotifier.value = UserData(
@@ -53,8 +67,8 @@ class UserProvider {
       phone: phone ?? current.phone,
       email: email ?? current.email,
       birthDate: birthDate ?? current.birthDate,
-      profileImage: profileImage != null ? profileImage : current.profileImage,
-      profileImageUrl: profileImageUrl ?? current.profileImageUrl,
+      profileImage: clearLocalImage ? null : (profileImage ?? current.profileImage),
+      profileImageUrl: clearImageUrl ? null : (profileImageUrl ?? current.profileImageUrl),
     );
   }
 
@@ -88,7 +102,7 @@ class UserProvider {
           return file;
         }
       }
-      updateProfile(profileImage: null);
+      updateProfile(clearLocalImage: true);
       return null;
     } catch (e) {
       debugPrint("Error loading local profile image: $e");
@@ -101,7 +115,7 @@ class UserProvider {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('profile_path_$uid');
-      updateProfile(profileImage: null);
+      updateProfile(clearLocalImage: true);
     } catch (e) {
       debugPrint("Error clearing local profile image: $e");
     }

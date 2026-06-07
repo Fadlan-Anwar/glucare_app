@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/user_provider.dart';
@@ -60,13 +62,20 @@ class ProfileContent extends StatelessWidget {
         CircleAvatar(
           radius: 48,
           backgroundColor: const Color(0xFFF3F4F6),
-          backgroundImage: userData.profileImage != null
-              ? FileImage(userData.profileImage!)
-              : (userData.profileImageUrl != null
-                  ? NetworkImage(userData.profileImageUrl!)
-                  : const NetworkImage(
-                      'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
-                    ) as ImageProvider),
+          child: ClipOval(
+            child: userData.profileImage != null
+                ? (kIsWeb 
+                    ? Image.network(userData.profileImage!.path, fit: BoxFit.cover, width: 96, height: 96)
+                    : Image.file(userData.profileImage!, fit: BoxFit.cover, width: 96, height: 96))
+                : (userData.profileImageUrl != null && userData.profileImageUrl!.isNotEmpty
+                    ? Image.network(userData.profileImageUrl!, fit: BoxFit.cover, width: 96, height: 96)
+                    : Image.network(
+                        'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+                        fit: BoxFit.cover,
+                        width: 96,
+                        height: 96,
+                      )),
+          ),
         ),
         const SizedBox(height: 16),
         Text(

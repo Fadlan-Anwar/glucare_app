@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../home/dashboard_screen.dart';
+import '../auth/auth_service.dart';
+import '../auth/auth_provider.dart';
 
-class AnalysisResultScreen extends StatefulWidget {
+class AnalysisResultScreen extends ConsumerStatefulWidget {
   // Keeping constructor matching main.dart for compatibility, but ignoring values
   final double? hba1c;
   final int? gulaDarah;
@@ -18,23 +21,78 @@ class AnalysisResultScreen extends StatefulWidget {
   });
 
   @override
-  State<AnalysisResultScreen> createState() => _AnalysisResultScreenState();
+  ConsumerState<AnalysisResultScreen> createState() => _AnalysisResultScreenState();
 }
 
-class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
+class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Simulate AI loading analysis for 2.5 seconds
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _performAnalysisAndSave();
     });
+  }
+
+  Future<void> _performAnalysisAndSave() async {
+    final startTime = DateTime.now();
+
+    try {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final authService = AuthService();
+
+      if (args != null) {
+        if (args['isKuesioner'] == true) {
+          // Send questionnaire data to Express backend
+          await authService.submitKuesionerData(
+            usia: args['usia'] ?? '',
+            riwayatKeluarga: args['riwayatKeluargaText'] ?? '',
+            olahraga: args['olahragaText'] ?? '',
+            makananManis: args['makananManisText'] ?? '',
+            lingkarPinggang: args['beratBadanText'] ?? '', // Mapping weight text to lingkar_pinggang as a proxy
+            gejalaDiabetes: args['gejalaText'] ?? '', // Mapping lifestyle text to gejala_diabetes
+            jamTidur: args['tidurText'] ?? '',
+            tingkatStress: args['hipertensiText'] ?? '', // Mapping hypertension text to tingkat_stress
+          );
+        } else if (args['isLab'] == true) {
+          // Send lab data to Express backend
+          await authService.submitLabData(
+            hba1c: args['hba1c'] as double? ?? 5.9,
+            gulaDarahPuasa: args['gulaDarah'] as int? ?? 108,
+            beratBadan: args['berat'] as double? ?? 72.0,
+            tinggiBadan: args['tinggi'] as double? ?? 168.0,
+            riwayatKeluarga: args['riwayatKeluargaText'] ?? 'Ya',
+            riwayatDiabetes: args['riwayatDiabetesText'] ?? 'Ya',
+          );
+        }
+      }
+      ref.invalidate(latestLabResultProvider);
+      ref.invalidate(latestAnalysisProvider);
+    } catch (e) {
+      debugPrint("Error saving assessment to backend: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Analisis berhasil, namun gagal sinkronisasi ke server: $e"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+
+    // Ensure the loading animation runs for at least 2.5 seconds
+    final elapsed = DateTime.now().difference(startTime);
+    final remaining = const Duration(milliseconds: 2500) - elapsed;
+    if (remaining > Duration.zero) {
+      await Future.delayed(remaining);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -80,31 +138,87 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
     }
 
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final hba1c = args?['hba1c'] as double? ?? widget.hba1c ?? 5.9;
-    final gulaDarah = args?['gulaDarah'] as int? ?? widget.gulaDarah ?? 108;
-    final berat = args?['berat'] as double? ?? widget.berat ?? 72.0;
-    final tinggi = args?['tinggi'] as double? ?? widget.tinggi ?? 168.0;
-    final riwayatKeluarga = args?['riwayatKeluarga'] as bool? ?? true;
     
-    // Hitung BMI
-    final tinggiM = tinggi / 100;
-    final bmi = berat / (tinggiM * tinggiM);
-
-    // Hitung Risk Score (simple logic)
     int score = 0;
-    if (hba1c >= 6.5) score += 40;
-    else if (hba1c >= 5.7) score += 20;
+    double hba1c = 5.0;
+    double bmi = 21.0;
+    int gulaDarah = 90;
+    bool riwayatKeluarga = true;
 
-    if (gulaDarah >= 126) score += 30;
-    else if (gulaDarah >= 100) score += 15;
+    final isKuesioner = args?['isKuesioner'] == true;
 
-    if (bmi >= 27.5) score += 20;
-    else if (bmi >= 23) score += 10;
+    if (isKuesioner) {
+      int kuesionerPoints = 0;
+      
+      final usia = args?['usia']?.toString();
+      if (usia == '30-39 tahun') kuesionerPoints += 10;
+      else if (usia == '40+ tahun') kuesionerPoints += 20;
+      
+      final riwayat = args?['riwayatKeluargaText']?.toString();
+      if (riwayat == 'Ya, kakek/nenek') kuesionerPoints += 5;
+      else if (riwayat == 'Ya, orang tua' || riwayat == 'Ya, saudara kandung') kuesionerPoints += 10;
+      
+      final beratText = args?['beratBadanText']?.toString();
+      if (beratText == 'Sedikit kelebihan') kuesionerPoints += 10;
+      else if (beratText == 'Kelebihan berat badan') kuesionerPoints += 15;
+      else if (beratText == 'Obesitas') kuesionerPoints += 20;
+      
+      final olahraga = args?['olahragaText']?.toString();
+      if (olahraga == '1–2x per minggu') kuesionerPoints += 5;
+      else if (olahraga == 'Jarang sekali') kuesionerPoints += 10;
+      else if (olahraga == 'Tidak pernah') kuesionerPoints += 15;
+      
+      final makanan = args?['makananManisText']?.toString();
+      if (makanan == 'Cukup sehat') kuesionerPoints += 5;
+      else if (makanan == 'Sering makan cepat saji') kuesionerPoints += 10;
+      else if (makanan == 'Banyak gula & gorengan') kuesionerPoints += 15;
+      
+      final tidur = args?['tidurText']?.toString();
+      if (tidur == '5–6 jam') kuesionerPoints += 5;
+      else if (tidur == 'Kurang dari 5 jam' || tidur == 'Tidak teratur') kuesionerPoints += 10;
+      
+      final stress = args?['hipertensiText']?.toString();
+      if (stress == 'Ya') kuesionerPoints += 10;
+      
+      final gejala = args?['gejalaText']?.toString();
+      if (gejala == 'Kadang-kadang') kuesionerPoints += 5;
+      else if (gejala == 'Salah satu rutin') kuesionerPoints += 10;
+      else if (gejala == 'Keduanya rutin') kuesionerPoints += 15;
+      
+      score = ((kuesionerPoints / 115) * 100).round();
+      if (score > 100) score = 100;
+      
+      // Map proxy values for UI cards in result screen
+      hba1c = score >= 60 ? 6.5 : (score >= 30 ? 5.9 : 5.0);
+      gulaDarah = score >= 60 ? 130 : (score >= 30 ? 110 : 90);
+      bmi = beratText == 'Obesitas' ? 30.0 : (beratText == 'Kelebihan berat badan' ? 26.0 : (beratText == 'Sedikit kelebihan' ? 24.0 : 21.0));
+      riwayatKeluarga = riwayat == 'Ya, kakek/nenek' || riwayat == 'Ya, orang tua' || riwayat == 'Ya, saudara kandung';
+    } else {
+      final double rawHba1c = args?['hba1c'] as double? ?? widget.hba1c ?? 5.9;
+      final int rawGulaDarah = args?['gulaDarah'] as int? ?? widget.gulaDarah ?? 108;
+      final double rawBerat = args?['berat'] as double? ?? widget.berat ?? 72.0;
+      final double rawTinggi = args?['tinggi'] as double? ?? widget.tinggi ?? 168.0;
+      final bool rawRiwayatKeluarga = args?['riwayatKeluarga'] as bool? ?? true;
+      
+      hba1c = rawHba1c;
+      gulaDarah = rawGulaDarah;
+      riwayatKeluarga = rawRiwayatKeluarga;
+      
+      final tinggiM = rawTinggi / 100;
+      bmi = rawBerat / (tinggiM * tinggiM);
 
-    if (riwayatKeluarga) score += 10;
-    
-    // Maksimal skor 100
-    if (score > 100) score = 100;
+      if (hba1c >= 6.5) score += 40;
+      else if (hba1c >= 5.7) score += 20;
+
+      if (gulaDarah >= 126) score += 30;
+      else if (gulaDarah >= 100) score += 15;
+
+      if (bmi >= 27.5) score += 20;
+      else if (bmi >= 23) score += 10;
+
+      if (riwayatKeluarga) score += 10;
+      if (score > 100) score = 100;
+    }
 
     String riskStatus = 'Normal';
     Color riskColor = const Color(0xFF10B981); // Green

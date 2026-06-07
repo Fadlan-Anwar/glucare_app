@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
+import 'custom_user.dart';
 import '../../core/user_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -55,6 +56,7 @@ Future<void> _handleRegister() async {
       password: _passwordController.text,
     );
 
+    UserProvider.clearProfile();
     UserProvider.updateProfile(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),

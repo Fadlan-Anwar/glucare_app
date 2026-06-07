@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class TermsOfServiceScreen extends StatelessWidget {
   const TermsOfServiceScreen({super.key});
@@ -7,44 +7,178 @@ class TermsOfServiceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.settingsBg,
-      body: Column(children: [
-        Container(width: double.infinity, height: 160,
-          decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.gradientBlueLight, AppColors.mainBlue]), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
-          child: SafeArea(child: Stack(children: [
-            Positioned(top: 10, left: 10, child: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 22), onPressed: () => Navigator.pop(context))),
-            const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("Term Of Service", style: TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold)))),
-          ]))),
-        const SizedBox(height: 30),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(children: [
-            Container(padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))]),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text("Dengan Menggunakan aplikasi ini Anda setuju untuk:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)), const SizedBox(height: 20),
-                _buildNumberedPoint("1", "Tidak menyalahgunakan layanan"),
-                _buildNumberedPoint("2", "Tidak melanggar Hukum"),
-                _buildNumberedPoint("3", "Menjaga Keamanan akun Anda"),
-                const SizedBox(height: 25),
-                const Text("Kami Berhak:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 15),
-                _buildArrowPoint("Menghapus akun anda jika melanggar aturan"),
-                _buildArrowPoint("Mengubah Layanan sewaktu-waktu"),
-              ])),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF111827), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Syarat & Ketentuan",
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF111827),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "KETENTUAN PENGGUNAAN APLIKASI",
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Dengan menggunakan aplikasi GluCare, Anda menyetujui ketentuan berikut:",
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: const Color(0xFF4B5563),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildNumberedPoint("1", "Menggunakan aplikasi secara bijak dan tidak menyalahgunakan layanan."),
+                  _buildNumberedPoint("2", "Tidak melakukan tindakan yang melanggar hukum atau merusak sistem."),
+                  _buildNumberedPoint("3", "Menjaga kerahasiaan dan keamanan informasi akun Anda."),
+                  const SizedBox(height: 20),
+                  const Divider(color: Color(0xFFF3F4F6), thickness: 1.5),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Hak dan Wewenang Kami",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRulePoint(Icons.gavel_rounded, "Menutup atau menonaktifkan akun yang terindikasi melanggar aturan penggunaan."),
+                  _buildRulePoint(Icons.update_rounded, "Memperbarui atau memodifikasi fitur layanan demi meningkatkan pengalaman pengguna."),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
-            Container(width: double.infinity, padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade300)),
-              child: const Center(child: Text("Terakhir di Perbarui: 29-03-2026", style: TextStyle(fontSize: 13, color: Colors.black87)))),
-          ])),
-      ]),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: Color(0xFF6B7280),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Terakhir diperbarui: 29 Mei 2026",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildNumberedPoint(String num, String text) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
-    Container(width: 22, height: 22, decoration: const BoxDecoration(color: AppColors.mainBlue, shape: BoxShape.circle), child: Center(child: Text(num, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)))),
-    const SizedBox(width: 12), Text(text, style: const TextStyle(fontSize: 14)),
-  ]));
+  Widget _buildNumberedPoint(String num, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              color: Color(0xFF007BFF),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                num,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF4B5563),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _buildArrowPoint(String text) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Icon(Icons.trending_flat, size: 20, color: Colors.black), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-  ]));
+  Widget _buildRulePoint(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: const Color(0xFF4B5563),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF4B5563),
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

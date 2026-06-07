@@ -44,7 +44,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                     'Masukkan hasil pemeriksaan laboratorium terbaru Anda.',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: const Color(0xFF334155),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -63,11 +63,14 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                           context, 
                           '/analysis-result',
                           arguments: {
+                            'isLab': true,
                             'hba1c': double.tryParse(_hba1cController.text) ?? 5.9,
                             'gulaDarah': int.tryParse(_gulaDarahController.text) ?? 108,
                             'berat': double.tryParse(_beratBadanController.text) ?? 72,
                             'tinggi': double.tryParse(_tinggiBadanController.text) ?? 168,
                             'riwayatKeluarga': _riwayatKeluarga1 == 'Ya' || _riwayatKeluarga2 == 'Ya',
+                            'riwayatKeluargaText': _riwayatKeluarga1,
+                            'riwayatDiabetesText': _riwayatKeluarga2,
                           },
                         );
                       },
@@ -237,10 +240,10 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                 child: TextField(
                   controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: GoogleFonts.poppins(
-                 fontSize: 15,
-                    color: Colors.black, 
-                    ),
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    color: Colors.grey[500],
+                  ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -267,7 +270,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
           subtext,
           style: GoogleFonts.poppins(
             fontSize: 10,
-            color: Colors.grey[400],
+            color: Colors.grey[600],
           ),
         ),
       ],
@@ -333,7 +336,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
           style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? const Color(0xFF1D4ED8) : Colors.grey[600],
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
           ),
         ),
       ),
@@ -397,7 +400,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
           style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? const Color(0xFF1D4ED8) : Colors.grey[600],
+            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
           ),
         ),
       ),

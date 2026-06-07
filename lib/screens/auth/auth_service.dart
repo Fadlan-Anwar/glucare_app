@@ -1,33 +1,74 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'custom_user.dart';
+import '../../core/user_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+
 class AuthService {
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
-  final http.Client _httpClient = http.Client();
+  // Base URL for backend REST API. Automatically switches between Web and Android Emulator.
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api/auth';
+    }
+    return 'http://10.0.2.2:5000/api/auth';
+  }
 
-  User? get currentUser => _auth.currentUser;
+  // Base API URL for endpoints outside /auth.
+  static String get baseApiUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5000/api';
+    }
+    return 'http://10.0.2.2:5000/api';
+  }
+  
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
-  Stream<User?> get authStateChanges =>
-      _auth.authStateChanges();
+  CustomUser? _currentUser;
+  final StreamController<CustomUser?> _authController = StreamController<CustomUser?>.broadcast();
+  
+  Stream<CustomUser?> get authStateChanges => _authController.stream;
+  CustomUser? get currentUser => _currentUser;
+
+  // Retrieve auth token from local storage
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
+  // Load user data from SharedPreferences to initialize current state
+  Future<CustomUser?> checkCurrentUser() async {
+    if (_currentUser != null) return _currentUser;
+
+    final prefs = await SharedPreferences.getInstance();
+    final userJsonStr = prefs.getString('user_data');
+    if (userJsonStr != null) {
+      try {
+        final userJson = jsonDecode(userJsonStr);
+        _currentUser = CustomUser.fromJson(userJson);
+        _authController.add(_currentUser);
+        return _currentUser;
+      } catch (e) {
+        debugPrint("Error loading saved user data: $e");
+      }
+    }
+    return null;
+  }
 
   // REGISTER
-  Future<UserCredential> register({
+  Future<CustomUser> register({
     required String email,
     required String password,
     required String fullName,
   }) async {
     try {
-      if (email.isEmpty ||
-          password.isEmpty ||
-          fullName.isEmpty) {
+      if (email.isEmpty || password.isEmpty || fullName.isEmpty) {
         throw Exception('Semua kolom harus diisi');
       }
 
@@ -35,42 +76,32 @@ class AuthService {
         throw Exception('Kata sandi minimal 6 karakter');
       }
 
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      final url = Uri.parse('$baseUrl/register');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'fullname': fullName,
+          'email': email,
+          'password': password,
+        }),
       );
 
-      await userCredential.user!
-          .updateDisplayName(fullName);
+      final data = jsonDecode(response.body);
 
-      await _createUserDocument(
-        uid: userCredential.user!.uid,
-        email: email,
-        fullName: fullName,
-      );
-
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
+      if (response.statusCode == 201) {
+        // Registration successful, auto-login user
+        return await signIn(email: email, password: password);
+      } else {
+        throw Exception(data['message'] ?? 'Registrasi gagal');
+      }
+    } catch (e) {
+      debugPrint("Error during registration: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
-  Future<void> _createUserDocument({
-    required String uid,
-    required String email,
-    required String fullName,
-  }) async {
-    await _firestore.collection('user').doc(uid).set({
-      'uid': uid,
-      'email': email,
-      'fullName': fullName,
-      'createdAt': DateTime.now(),
-      'updatedAt': DateTime.now(),
-    });
-  }
-
-  Future<UserCredential> signUp({
+  Future<CustomUser> signUp({
     required String email,
     required String password,
     required String fullName,
@@ -83,7 +114,7 @@ class AuthService {
   }
 
   // LOGIN
-  Future<UserCredential> signIn({
+  Future<CustomUser> signIn({
     required String email,
     required String password,
   }) async {
@@ -91,105 +122,159 @@ class AuthService {
       if (email.isEmpty || password.isEmpty) {
         throw Exception('Email dan kata sandi harus diisi');
       }
-      return await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+
+      final url = Uri.parse('$baseUrl/login');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
       );
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final token = data['token'];
+        final userJson = data['user'];
+
+        final prefs = await SharedPreferences.getInstance();
+        if (token != null) {
+          await prefs.setString('jwt_token', token);
+        }
+        await prefs.setString('user_data', jsonEncode(userJson));
+
+        final user = CustomUser.fromJson(userJson);
+        _currentUser = user;
+        _authController.add(user);
+        return user;
+      } else {
+        throw Exception(data['message'] ?? 'Login gagal');
+      }
+    } catch (e) {
+      debugPrint("Error during login: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
   // LOGOUT
   Future<void> signOut() async {
-    await GoogleSignIn.instance.signOut();
-    await _auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    await prefs.remove('user_data');
+    _currentUser = null;
+    _authController.add(null);
+    UserProvider.clearProfile();
   }
 
   // GOOGLE SIGN IN
-  Future<UserCredential?> signInWithGoogle() async {
+  Future<CustomUser?> signInWithGoogle() async {
     try {
-      await GoogleSignIn.instance.initialize();
-      // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
-
-      if (googleUser == null) {
-        // The user canceled the sign-in
-        return null;
-      }
-
-      // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // Create a new credential
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
+      // 1. Initialize Google Sign In (Required in version 7+)
+      await _googleSignIn.initialize(
+        serverClientId: '740953369648-d8no5la6nme2gcddjf387f2ufigpvpj0.apps.googleusercontent.com',
       );
 
-      // Once signed in, return the UserCredential
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
-      
-      // Also save to Firestore if needed
-      if (userCredential.user != null) {
-        await _firestore.collection('user').doc(userCredential.user!.uid).set({
-          'uid': userCredential.user!.uid,
-          'email': userCredential.user!.email,
-          'fullName': userCredential.user!.displayName,
-          'updatedAt': DateTime.now(),
-        }, SetOptions(merge: true));
+      // 2. Trigger Google Sign In flow (authenticate() replaces signIn() in version 7+)
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+      if (googleUser == null) return null; // User cancelled
+
+      // 3. Get auth details
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception("Gagal mendapatkan Google ID Token");
       }
 
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
+      // 3. Post to backend
+      final url = Uri.parse('$baseUrl/google');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': idToken}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = data['token'];
+        final userJson = data['user'];
+
+        final prefs = await SharedPreferences.getInstance();
+        if (token != null) {
+          await prefs.setString('jwt_token', token);
+        }
+        await prefs.setString('user_data', jsonEncode(userJson));
+
+        final user = CustomUser.fromJson(userJson);
+        _currentUser = user;
+        _authController.add(user);
+        return user;
+      } else {
+        throw Exception(data['message'] ?? 'Login dengan Google gagal');
+      }
     } catch (e) {
-      throw Exception(e.toString());
+      debugPrint("Error during Google sign in: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
   // FACEBOOK SIGN IN
-  Future<UserCredential?> signInWithFacebook() async {
+  Future<CustomUser?> signInWithFacebook() async {
     try {
-      // Trigger the sign-in flow
+      // 1. Trigger Facebook Login flow
       final LoginResult result = await FacebookAuth.instance.login(
-        permissions: ['public_profile'],
+        permissions: ['email', 'public_profile'],
       );
 
       if (result.status == LoginStatus.success) {
-        // Create a new credential
-        final AuthCredential credential = FacebookAuthProvider.credential(
-          result.accessToken!.tokenString,
-        );
-
-        // Once signed in, return the UserCredential
-        UserCredential userCredential = await _auth.signInWithCredential(credential);
-        
-        // Also save to Firestore if needed
-        if (userCredential.user != null) {
-          await _firestore.collection('user').doc(userCredential.user!.uid).set({
-            'uid': userCredential.user!.uid,
-            'email': userCredential.user!.email,
-            'fullName': userCredential.user!.displayName,
-            'updatedAt': DateTime.now(),
-          }, SetOptions(merge: true));
+        final AccessToken? accessToken = result.accessToken;
+        if (accessToken == null) {
+          throw Exception("Gagal mendapatkan Access Token Facebook");
         }
 
-        return userCredential;
+        // 2. Post to backend
+        final url = Uri.parse('$baseUrl/facebook');
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'token': accessToken.tokenString}),
+        );
+
+        final data = jsonDecode(response.body);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final token = data['token'];
+          final userJson = data['user'];
+
+          final prefs = await SharedPreferences.getInstance();
+          if (token != null) {
+            await prefs.setString('jwt_token', token);
+          }
+          await prefs.setString('user_data', jsonEncode(userJson));
+
+          final user = CustomUser.fromJson(userJson);
+          _currentUser = user;
+          _authController.add(user);
+          return user;
+        } else {
+          throw Exception(data['message'] ?? 'Login dengan Facebook gagal');
+        }
       } else if (result.status == LoginStatus.cancelled) {
-        return null;
+        return null; // User cancelled
       } else {
-        throw Exception(result.message ?? 'Login Facebook gagal');
+        throw Exception(result.message ?? "Terjadi kesalahan saat login Facebook");
       }
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
     } catch (e) {
-      throw Exception(e.toString());
+      debugPrint("Error during Facebook sign in: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
-  // ALIAS FOR SIGNOUT
   static Future<void> logout() async {
-    await _auth.signOut();
+    await AuthService().signOut();
   }
 
   // CHANGE PASSWORD
@@ -198,25 +283,35 @@ class AuthService {
     required String newPassword,
   }) async {
     try {
-      User? user = _auth.currentUser;
-      if (user == null || user.email == null) {
-        throw Exception('User tidak ditemukan');
-      }
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
 
-      // Re-authenticate user
-      AuthCredential credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: oldPassword,
+      final token = await getToken();
+      final url = Uri.parse('$baseUrl/change-password/${user.uid}');
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        }),
       );
 
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(newPassword);
-    } on FirebaseAuthException catch (e) {
-      throw Exception(e.message);
+      if (response.statusCode != 200) {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Gagal memperbarui kata sandi');
+      }
+    } catch (e) {
+      debugPrint("Error during change password: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
-  // UPDATE PROFILE (Name and Firestore fields)
+  // UPDATE PROFILE (Name and database fields)
   Future<void> updateProfile({
     required String fullName,
     String? gender,
@@ -225,106 +320,302 @@ class AuthService {
     String? profileImageUrl,
   }) async {
     try {
-      User? user = _auth.currentUser;
+      final user = await checkCurrentUser();
       if (user == null) throw Exception('User tidak ditemukan');
 
-      // 1. Update Firebase Auth Display Name and Photo URL
-      await user.updateDisplayName(fullName);
-      if (profileImageUrl != null) {
-        await user.updatePhotoURL(profileImageUrl);
-      }
+      final token = await getToken();
+      final url = Uri.parse('$baseUrl/update-profile/${user.uid}');
 
-      // 2. Update Firestore document (using set with merge: true to create if missing)
-      await _firestore.collection('user').doc(user.uid).set({
-        'fullName': fullName,
+      final body = {
+        'fullname': fullName,
+        'email': user.email,
         if (gender != null) 'gender': gender,
         if (phone != null) 'phone': phone,
-        if (birthDate != null) 'birthDate': birthDate,
-        if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
-        'updatedAt': DateTime.now(),
-      }, SetOptions(merge: true));
-      debugPrint("Firestore update successful for UID: ${user.uid}");
-    } on FirebaseAuthException catch (e) {
-      debugPrint("FirebaseAuth Error updating profile: ${e.message}");
-      throw Exception(e.message);
+        if (birthDate != null) 'birth_date': birthDate,
+        'profile_image': profileImageUrl ?? '',
+      };
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final updatedUserJson = data['user'];
+        if (updatedUserJson != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_data', jsonEncode(updatedUserJson));
+          
+          _currentUser = CustomUser.fromJson(updatedUserJson);
+          _authController.add(_currentUser);
+        }
+      } else {
+        throw Exception(data['message'] ?? 'Gagal memperbarui profil');
+      }
     } catch (e) {
-      debugPrint("General Error updating profile: $e");
-      throw Exception(e.toString());
+      debugPrint("Error updating profile: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
-  // UPLOAD PROFILE IMAGE TO FIREBASE STORAGE
-  Future<String?> uploadProfileImage(File imageFile) async {
+  // UPLOAD PROFILE IMAGE
+  Future<String?> uploadProfileImage(List<int> bytes, String filename) async {
     try {
-      User? user = _auth.currentUser;
+      final user = await checkCurrentUser();
       if (user == null) throw Exception('User tidak ditemukan');
 
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('profile_images')
-          .child('${user.uid}.jpg');
+      final token = await getToken();
+      final url = Uri.parse('$baseUrl/upload-photo/${user.uid}');
 
-      // Upload the file
-      UploadTask uploadTask = storageRef.putFile(imageFile);
-      TaskSnapshot snapshot = await uploadTask;
+      var request = http.MultipartRequest('PUT', url);
+      request.headers.addAll({
+        if (token != null) 'Authorization': 'Bearer $token',
+      });
 
-      // Get download URL
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: filename,
+      ));
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final relativePath = responseData['imagePath'];
+        if (relativePath != null) {
+          // Prepend host URL dynamically depending on platform
+          final host = kIsWeb ? 'http://localhost:5000' : 'http://10.0.2.2:5000';
+          return '$host$relativePath';
+        }
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Gagal mengunggah foto profil');
+      }
+      return null;
     } catch (e) {
       debugPrint("Error uploading profile image: $e");
-      throw Exception("Gagal mengunggah foto profil: ${e.toString()}");
+      throw Exception("Gagal mengunggah foto profil: ${e.toString().replaceFirst('Exception: ', '')}");
     }
   }
 
-  // UPDATE EMAIL (Cara Resmi Firebase - Memerlukan Verifikasi Email Baru)
+  // UPDATE EMAIL (Mock)
   Future<void> updateEmail({
     required String newEmail,
     required String password,
   }) async {
-    try {
-      User? user = _auth.currentUser;
-      if (user == null || user.email == null) throw Exception('User tidak ditemukan');
-
-      // 1. Re-authenticate untuk keamanan
-      AuthCredential credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
-      );
-      await user.reauthenticateWithCredential(credential);
-
-      // 2. Kirim email verifikasi ke alamat baru
-      await user.verifyBeforeUpdateEmail(newEmail);
-
-      // 3. Update Firestore SEGERA agar UI aplikasi langsung berubah tanpa refresh
-      await _firestore.collection('user').doc(user.uid).set({
-        'email': newEmail,
-        'updatedAt': DateTime.now(),
-      }, SetOptions(merge: true));
-      
-      debugPrint("Verification sent & Firestore updated to: $newEmail");
-    } on FirebaseAuthException catch (e) {
-      debugPrint("FirebaseAuth Error: ${e.message}");
-      throw Exception(e.message);
-    } catch (e) {
-      debugPrint("Error: $e");
-      throw Exception(e.toString());
-    }
+    throw Exception('Fitur edit email tidak didukung secara terpisah. Harap lakukan lewat edit profile.');
   }
 
-  // FETCH USER DATA FROM FIRESTORE
+  // FETCH USER DATA FROM DATABASE
   Future<Map<String, dynamic>?> fetchUserData() async {
     try {
-      User? user = _auth.currentUser;
+      final user = await checkCurrentUser();
       if (user == null) return null;
 
-      DocumentSnapshot doc = await _firestore.collection('user').doc(user.uid).get();
-      if (doc.exists) {
-        return doc.data() as Map<String, dynamic>?;
+      final token = await getToken();
+      final url = Uri.parse('$baseUrl/profile/${user.uid}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
       }
       return null;
     } catch (e) {
+      debugPrint("Error fetching user data: $e");
       return null;
+    }
+  }
+
+  // FETCH LATEST LAB DATA FROM DATABASE
+  Future<Map<String, dynamic>?> fetchLatestLabData() async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) return null;
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/lab/${user.uid}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching latest lab data: $e");
+      return null;
+    }
+  }
+
+  // FETCH LATEST KUESIONER DATA FROM DATABASE
+  Future<Map<String, dynamic>?> fetchLatestKuesionerData() async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) return null;
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/kuesioner/${user.uid}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching latest kuesioner data: $e");
+      return null;
+    }
+  }
+
+  // SUBMIT LAB DATA
+  Future<void> submitLabData({
+    required double hba1c,
+    required int gulaDarahPuasa,
+    required double beratBadan,
+    required double tinggiBadan,
+    required String riwayatKeluarga,
+    required String riwayatDiabetes,
+  }) async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/lab/submit');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'user_id': user.uid,
+          'hba1c': hba1c,
+          'gula_darah_puasa': gulaDarahPuasa,
+          'berat_badan': beratBadan,
+          'tinggi_badan': tinggiBadan,
+          'riwayat_keluarga': riwayatKeluarga,
+          'riwayat_diabetes': riwayatDiabetes,
+        }),
+      );
+
+      if (response.statusCode != 201) {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Gagal menyimpan data lab');
+      }
+    } catch (e) {
+      debugPrint("Error submitting lab data: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // SUBMIT QUESTIONNAIRE DATA
+  Future<void> submitKuesionerData({
+    required String usia,
+    required String riwayatKeluarga,
+    required String olahraga,
+    required String makananManis,
+    required String lingkarPinggang,
+    required String gejalaDiabetes,
+    required String jamTidur,
+    required String tingkatStress,
+  }) async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/kuesioner/submit');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'user_id': user.uid,
+          'usia': usia,
+          'riwayat_keluarga': riwayatKeluarga,
+          'olahraga': olahraga,
+          'makanan_manis': makananManis,
+          'lingkar_pinggang': lingkarPinggang,
+          'gejala_diabetes': gejalaDiabetes,
+          'jam_tidur': jamTidur,
+          'tingkat_stress': tingkatStress,
+        }),
+      );
+
+      if (response.statusCode != 201) {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Gagal menyimpan data kuesioner');
+      }
+    } catch (e) {
+      debugPrint("Error submitting kuesioner data: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // RUN AI PREDICTION FOR 90-DAY MONITORING
+  Future<Map<String, dynamic>> getAiPrediction({
+    required String patientId,
+    required List<Map<String, dynamic>> records,
+  }) async {
+    try {
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/monitoring/predict');
+
+      debugPrint("Calling AI Prediction URL: $url");
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'patient_id': patientId,
+          'records': records,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data as Map<String, dynamic>;
+      } else {
+        throw Exception(data['message'] ?? 'Gagal memproses prediksi AI');
+      }
+    } catch (e) {
+      debugPrint("Error running AI prediction: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }

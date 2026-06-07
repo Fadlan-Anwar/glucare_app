@@ -81,7 +81,21 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      Navigator.pushNamed(context, '/analysis-result');
+      Navigator.pushNamed(
+        context, 
+        '/analysis-result',
+        arguments: {
+          'isKuesioner': true,
+          'usia': _questions[0].options[_selectedAnswers[0]],
+          'riwayatKeluargaText': _questions[1].options[_selectedAnswers[1]],
+          'beratBadanText': _questions[2].options[_selectedAnswers[2]],
+          'olahragaText': _questions[3].options[_selectedAnswers[3]],
+          'makananManisText': _questions[4].options[_selectedAnswers[4]],
+          'tidurText': _questions[5].options[_selectedAnswers[5]],
+          'gejalaText': _questions[6].options[_selectedAnswers[6]],
+          'hipertensiText': _questions[7].options[_selectedAnswers[7]],
+        },
+      );
     }
   }
 

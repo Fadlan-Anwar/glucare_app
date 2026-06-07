@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../auth/auth_service.dart';
+import '../auth/auth_provider.dart';
 import 'settings/change_email_screen.dart';
 import '../../core/user_provider.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
-  File? _image;
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  XFile? _image;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  bool _isImageDeleted = false;
 
   late TextEditingController _nameController;
   late TextEditingController _genderController;
@@ -25,16 +29,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _birthDateController;
 
+  String _formatBirthDateForUi(String dateStr) {
+    if (dateStr.isEmpty) return '';
+    try {
+      DateTime? parsedDate;
+      if (dateStr.contains('T')) {
+        parsedDate = DateTime.parse(dateStr).toLocal();
+      } else {
+        final parts = dateStr.split('-');
+        if (parts.length == 3 && parts[0].length == 4) {
+          parsedDate = DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
+        }
+      }
+      
+      if (parsedDate != null) {
+        return "${parsedDate.day.toString().padLeft(2, '0')}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.year}";
+      }
+    } catch (e) {
+      debugPrint("Error formatting date for UI: $e");
+    }
+    return dateStr;
+  }
+
+  String? _formatBirthDateForDb(String dateStr) {
+    if (dateStr.isEmpty) return null;
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateStr)) {
+      return dateStr;
+    }
+    try {
+      final parts = dateStr.split('-');
+      if (parts.length == 3) {
+        final day = parts[0];
+        final month = parts[1];
+        final year = parts[2];
+        if (day.length <= 2 && year.length == 4) {
+          return '$year-$month-${day.padLeft(2, '0')}';
+        }
+      }
+    } catch (e) {
+      debugPrint("Error formatting date for DB: $e");
+    }
+    return dateStr;
+  }
+
   @override
   void initState() {
     super.initState();
     final userData = UserProvider.userNotifier.value;
-    _image = userData.profileImage;
+    _image = null; // Represents new unsaved file, null initially
+    _isImageDeleted = false;
     _nameController = TextEditingController(text: userData.name);
     _genderController = TextEditingController(text: userData.gender);
     _emailController = TextEditingController(text: userData.email);
     _phoneController = TextEditingController(text: userData.phone);
-    _birthDateController = TextEditingController(text: userData.birthDate);
+    _birthDateController = TextEditingController(text: _formatBirthDateForUi(userData.birthDate));
     
     // Ensure gender has a valid initial value if it's empty
     if (_genderController.text != 'Laki-laki' && _genderController.text != 'Perempuan') {
@@ -56,7 +108,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final XFile? pickedFile = await _picker.pickImage(source: source, imageQuality: 50);
       if (pickedFile != null) {
-        setState(() => _image = File(pickedFile.path));
+        setState(() {
+          _image = pickedFile;
+          _isImageDeleted = false;
+        });
         Navigator.pop(context);
       }
     } catch (e) {
@@ -65,6 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showPicker(BuildContext context) {
+    final userData = UserProvider.userNotifier.value;
     showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
@@ -91,10 +147,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 10),
                 CircleAvatar(
                     radius: 40,
-                    backgroundImage: _image != null
-                        ? FileImage(_image!)
-                        : const AssetImage('assets/images/profile_user.png')
-                            as ImageProvider),
+                    child: ClipOval(
+                      child: _image != null
+                          ? (kIsWeb 
+                              ? Image.network(_image!.path, fit: BoxFit.cover, width: 80, height: 80)
+                              : Image.file(File(_image!.path), fit: BoxFit.cover, width: 80, height: 80))
+                          : (_isImageDeleted
+                              ? Image.asset('assets/images/profile_user.png', fit: BoxFit.cover, width: 80, height: 80)
+                              : (userData.profileImage != null
+                                  ? Image.file(userData.profileImage!, fit: BoxFit.cover, width: 80, height: 80)
+                                  : (userData.profileImageUrl != null && userData.profileImageUrl!.isNotEmpty
+                                      ? Image.network(userData.profileImageUrl!, fit: BoxFit.cover, width: 80, height: 80)
+                                      : Image.asset('assets/images/profile_user.png', fit: BoxFit.cover, width: 80, height: 80)))),
+                    )),
                 const SizedBox(height: 20),
                 Row(children: [
                   Expanded(
@@ -122,7 +187,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                         onPressed: () {
-                          setState(() => _image = null);
+                          setState(() {
+                            _image = null;
+                            _isImageDeleted = true;
+                          });
                           Navigator.pop(context);
                         },
                         icon: const Icon(Icons.delete_outline,
@@ -144,8 +212,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final gender = _genderController.text;
     final phone = _phoneController.text.trim();
     final birthDate = _birthDateController.text;
+    final birthDateDb = _formatBirthDateForDb(birthDate);
     
-    debugPrint("Attempting to save profile: name=$fullName, gender=$gender, phone=$phone, birthDate=$birthDate");
+    debugPrint("Attempting to save profile: name=$fullName, gender=$gender, phone=$phone, birthDate=$birthDate, birthDateDb=$birthDateDb, isImageDeleted=$_isImageDeleted");
 
     try {
       final authService = AuthService();
@@ -153,12 +222,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final currentEmail = UserProvider.userNotifier.value.email;
       final newEmail = _emailController.text.trim();
 
-      // Persist profile image locally if changed
+      String? remoteProfileImageUrl = UserProvider.userNotifier.value.profileImageUrl;
+
       if (user != null) {
-        if (_image != null && _image != UserProvider.userNotifier.value.profileImage) {
-          await UserProvider.persistLocalProfileImage(user.uid, _image!);
-        } else if (_image == null) {
+        if (_isImageDeleted) {
           await UserProvider.clearLocalProfileImage(user.uid);
+          remoteProfileImageUrl = null;
+        } else if (_image != null) {
+          // Upload photo to backend Express server first
+          final bytes = await _image!.readAsBytes();
+          remoteProfileImageUrl = await authService.uploadProfileImage(bytes, _image!.name);
+
+          // Save local path for caching if not on web
+          if (!kIsWeb) {
+            await UserProvider.persistLocalProfileImage(user.uid, File(_image!.path));
+          }
         }
       }
 
@@ -167,7 +245,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fullName: fullName,
         gender: gender,
         phone: phone,
-        birthDate: birthDate,
+        birthDate: birthDateDb,
+        profileImageUrl: remoteProfileImageUrl,
       );
 
       // 2. Update local state
@@ -177,9 +256,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phone: _phoneController.text.trim(),
         email: newEmail,
         birthDate: _birthDateController.text,
+        profileImageUrl: remoteProfileImageUrl,
+        clearLocalImage: _isImageDeleted,
+        clearImageUrl: _isImageDeleted,
       );
 
-      // 3. Handle Email change if needed (requires password usually)
+      // 3. Invalidate Riverpod userProfileProvider to trigger fresh sync from DB
+      ref.invalidate(userProfileProvider);
+
+      // 4. Handle Email change if needed (requires password usually)
       if (newEmail != currentEmail) {
         // We update Firestore but Firebase Auth email needs verification/re-auth
         // For now, we'll just show a note if email was changed
@@ -253,12 +338,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   CircleAvatar(
                       radius: 50,
-                      backgroundImage: _image != null
-                          ? FileImage(_image!)
-                          : (userData.profileImageUrl != null
-                              ? NetworkImage(userData.profileImageUrl!)
-                              : const AssetImage('assets/images/profile_user.png')
-                                  as ImageProvider)),
+                      child: ClipOval(
+                        child: _image != null
+                            ? (kIsWeb 
+                                ? Image.network(_image!.path, fit: BoxFit.cover, width: 100, height: 100)
+                                : Image.file(File(_image!.path), fit: BoxFit.cover, width: 100, height: 100))
+                            : (_isImageDeleted
+                                ? Image.asset('assets/images/profile_user.png', fit: BoxFit.cover, width: 100, height: 100)
+                                : (userData.profileImage != null
+                                    ? Image.file(userData.profileImage!, fit: BoxFit.cover, width: 100, height: 100)
+                                    : (userData.profileImageUrl != null && userData.profileImageUrl!.isNotEmpty
+                                        ? Image.network(userData.profileImageUrl!, fit: BoxFit.cover, width: 100, height: 100)
+                                        : Image.asset('assets/images/profile_user.png', fit: BoxFit.cover, width: 100, height: 100)))),
+                      )),
                   Positioned(
                       bottom: 0,
                       right: 0,

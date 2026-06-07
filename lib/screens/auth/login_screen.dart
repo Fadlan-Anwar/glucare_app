@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'auth_service.dart';
+import 'custom_user.dart';
 import '../../core/user_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,29 +38,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authService = AuthService();
-      final userCredential = await authService.signIn(
+      final user = await authService.signIn(
         email: _loginEmailController.text.trim(),
         password: _loginPasswordController.text,
       );
 
-      final user = userCredential.user;
-      if (user != null) {
-        // Fetch full user data from Firestore
-        final userData = await authService.fetchUserData();
-        
-        // Update UserProvider with full info
-        UserProvider.updateProfile(
-          name: userData?['fullName'] ?? user.displayName ?? 'User',
-          email: user.email ?? '',
-          gender: userData?['gender'] ?? '',
-          phone: userData?['phone'] ?? '',
-          birthDate: userData?['birthDate'] ?? '',
-          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
-        );
-        
-        // Load local profile image path if it exists
-        await UserProvider.loadLocalProfileImage(user.uid);
-      }
+      // Fetch full user data from REST API backend
+      final userData = await authService.fetchUserData();
+      
+      // Update UserProvider with full info
+      UserProvider.clearProfile();
+      UserProvider.updateProfile(
+        name: userData?['fullname'] ?? user.displayName ?? 'User',
+        email: user.email,
+        gender: userData?['gender'] ?? '',
+        phone: userData?['phone'] ?? '',
+        birthDate: userData?['birth_date'] ?? '',
+        profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
+            ? (userData['profile_image'].toString().startsWith('http')
+                ? userData['profile_image']
+                : 'http://10.0.2.2:5000${userData['profile_image']}')
+            : null,
+      );
+      
+      // Load local profile image path if it exists
+      await UserProvider.loadLocalProfileImage(user.uid);
 
       setState(() => _isLoading = false);
 
@@ -96,21 +99,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authService = AuthService();
-      final userCredential = await authService.signInWithGoogle();
+      final user = await authService.signInWithGoogle();
 
-      if (userCredential != null && userCredential.user != null) {
-        final user = userCredential.user!;
-        // Fetch full user data from Firestore
+      if (user != null) {
+        // Fetch full user data from REST API backend
         final userData = await authService.fetchUserData();
         
         // Update UserProvider with full info
+        UserProvider.clearProfile();
         UserProvider.updateProfile(
-          name: userData?['fullName'] ?? user.displayName ?? 'User',
-          email: user.email ?? '',
+          name: userData?['fullname'] ?? user.displayName ?? 'User',
+          email: user.email,
           gender: userData?['gender'] ?? '',
           phone: userData?['phone'] ?? '',
-          birthDate: userData?['birthDate'] ?? '',
-          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
+          birthDate: userData?['birth_date'] ?? '',
+          profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
+              ? (userData['profile_image'].toString().startsWith('http')
+                  ? userData['profile_image']
+                  : 'http://10.0.2.2:5000${userData['profile_image']}')
+              : null,
         );
 
         // Load local profile image path if it exists
@@ -155,21 +162,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authService = AuthService();
-      final userCredential = await authService.signInWithFacebook();
+      final user = await authService.signInWithFacebook();
 
-      if (userCredential != null && userCredential.user != null) {
-        final user = userCredential.user!;
-        // Fetch full user data from Firestore
+      if (user != null) {
+        // Fetch full user data from REST API backend
         final userData = await authService.fetchUserData();
         
         // Update UserProvider with full info
+        UserProvider.clearProfile();
         UserProvider.updateProfile(
-          name: userData?['fullName'] ?? user.displayName ?? 'User',
-          email: user.email ?? '',
+          name: userData?['fullname'] ?? user.displayName ?? 'User',
+          email: user.email,
           gender: userData?['gender'] ?? '',
           phone: userData?['phone'] ?? '',
-          birthDate: userData?['birthDate'] ?? '',
-          profileImageUrl: userData?['profileImageUrl'] ?? user.photoURL,
+          birthDate: userData?['birth_date'] ?? '',
+          profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
+              ? (userData['profile_image'].toString().startsWith('http')
+                  ? userData['profile_image']
+                  : 'http://10.0.2.2:5000${userData['profile_image']}')
+              : null,
         );
 
         // Load local profile image path if it exists

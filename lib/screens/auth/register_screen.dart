@@ -16,6 +16,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _agreeTerms = false;
   bool _isLoading = false;
+  
+  String? _selectedGender;
+  DateTime? _selectedBirthDate;
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -24,6 +27,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 Future<void> _handleRegister() async {
   if (_isLoading) return;
+
+  final email = _emailController.text.trim();
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  if (!emailRegex.hasMatch(email)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Format email tidak valid (harus mengandung @ dan .domain)'),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+    return;
+  }
+
+  if (_selectedGender == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Silakan pilih jenis kelamin'), backgroundColor: Colors.redAccent),
+    );
+    return;
+  }
+
+  if (_selectedBirthDate == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Silakan pilih tanggal lahir'), backgroundColor: Colors.redAccent),
+    );
+    return;
+  }
 
   if (_passwordController.text != _confirmPasswordController.text) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -54,6 +83,8 @@ Future<void> _handleRegister() async {
       fullName: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      gender: _selectedGender,
+      birthDate: "${_selectedBirthDate!.year}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.day.toString().padLeft(2, '0')}",
     );
 
     UserProvider.clearProfile();
@@ -226,6 +257,117 @@ Future<void> _handleRegister() async {
                                     borderSide: const BorderSide(color: Color(0xFF007AE1), width: 1.5),
                                   ),
                                 ),
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              // Gender & Birth Date in a Row
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Gender Dropdown
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedGender,
+                                      icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[500], size: 20),
+                                      dropdownColor: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      elevation: 8,
+                                      items: [
+                                        DropdownMenuItem(
+                                          value: 'Laki-laki', 
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
+                                                child: const Icon(Icons.male, color: Colors.blue, size: 16),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text('Laki-laki', style: GoogleFonts.poppins(fontSize: 13, fontWeight: _selectedGender == 'Laki-laki' ? FontWeight.w600 : FontWeight.w400)),
+                                            ],
+                                          ),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'Perempuan', 
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: BoxDecoration(color: Colors.pink[50], shape: BoxShape.circle),
+                                                child: const Icon(Icons.female, color: Colors.pink, size: 16),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text('Perempuan', style: GoogleFonts.poppins(fontSize: 13, fontWeight: _selectedGender == 'Perempuan' ? FontWeight.w600 : FontWeight.w400)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) => setState(() => _selectedGender = value),
+                                      decoration: InputDecoration(
+                                        labelText: 'Gender',
+                                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                                        labelStyle: GoogleFonts.poppins(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                                        filled: true,
+                                        fillColor: Colors.grey[50],
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: const BorderSide(color: Color(0xFF007AE1), width: 1.5),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  
+                                  // Birth Date Picker
+                                  Expanded(
+                                    child: TextFormField(
+                                      readOnly: true,
+                                      onTap: () async {
+                                        final date = await showDatePicker(
+                                          context: context,
+                                          initialDate: _selectedBirthDate ?? DateTime.now().subtract(const Duration(days: 365 * 20)),
+                                          firstDate: DateTime(1900),
+                                          lastDate: DateTime.now(),
+                                        );
+                                        if (date != null) {
+                                          setState(() => _selectedBirthDate = date);
+                                        }
+                                      },
+                                      decoration: InputDecoration(
+                                        labelText: 'Tgl Lahir',
+                                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                                        hintText: _selectedBirthDate == null ? 'Pilih' : "${_selectedBirthDate!.day.toString().padLeft(2, '0')}-${_selectedBirthDate!.month.toString().padLeft(2, '0')}-${_selectedBirthDate!.year}",
+                                        hintStyle: GoogleFonts.poppins(color: _selectedBirthDate == null ? Colors.grey[400] : Colors.grey[800], fontSize: 13),
+                                        labelStyle: GoogleFonts.poppins(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                                        filled: true,
+                                        fillColor: Colors.grey[50],
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[200]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: const BorderSide(color: Color(0xFF007AE1), width: 1.5),
+                                        ),
+                                        suffixIcon: Icon(Icons.calendar_today, color: Colors.grey[500], size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 24),
                               

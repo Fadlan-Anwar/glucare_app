@@ -14,36 +14,36 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
   final List<_Question> _questions = [
     _Question(
-      question: 'Usia Anda saat ini?',
-      options: ['20-29 Tahun', '30-39 tahun', '40+ tahun'],
+      question: "Usia Anda saat ini?",
+      options: ["20-29 Tahun", "30-39 Tahun", "40+ Tahun"],
     ),
     _Question(
-      question: 'Apakah ada anggota keluarga Anda yang menderita diabetes?',
-      options: ['Tidak ada', 'Ya, kakek/nenek', 'Ya, orang tua', 'Ya, saudara kandung'],
+      question: "Ada anggota keluarga dengan diabetes?",
+      options: ["Ada", "Tidak ada", "Tidak Tahu"],
     ),
     _Question(
-      question: 'Bagaimana berat badan Anda menurut Anda?',
-      options: ['Ideal / normal', 'Sedikit kelebihan', 'Kelebihan berat badan', 'Obesitas'],
+      question: "Seberapa sering Anda berolahraga per minggu?",
+      options: ["Tidak pernah", "1-2 kali", "3+ kali"],
     ),
     _Question(
-      question: 'Seberapa sering Anda berolahraga?',
-      options: ['Rutin (≥3x/minggu)', '1–2x per minggu', 'Jarang sekali', 'Tidak pernah'],
+      question: "Seberapa sering konsumsi minuman manis atau makanan olahan?",
+      options: ["Setiap hari", "Beberapa kali dalam seminggu", "Sangat jarang"],
     ),
     _Question(
-      question: 'Bagaimana pola makan Anda sehari-hari?',
-      options: ['Seimbang & banyak sayur', 'Cukup sehat', 'Sering makan cepat saji', 'Banyak gula & gorengan'],
+      question: "Bagaimana ukuran lingkar pinggang Anda?",
+      options: ["Normal", "Agak Besar", "Besar (Gemuk perut)"],
     ),
     _Question(
-      question: 'Berapa jam Anda tidur setiap malam?',
-      options: ['7–9 jam (ideal)', '5–6 jam', 'Kurang dari 5 jam', 'Tidak teratur'],
+      question: "Apakah Anda sering haus berlebih, sering buang air kecil, dan mudah lelah?",
+      options: ["Iya", "Tidak terlalu", "Tidak sama sekali"],
     ),
     _Question(
-      question: 'Apakah Anda merokok atau mengonsumsi alkohol?',
-      options: ['Tidak keduanya', 'Kadang-kadang', 'Salah satu rutin', 'Keduanya rutin'],
+      question: "Berapa jam Anda tidur per-malam?",
+      options: ["<5 jam", "5-6 jam", "7-8 jam"],
     ),
     _Question(
-      question: 'Pernah didiagnosis tekanan darah tinggi?',
-      options: ['Ya', 'Tidak'],
+      question: "Bagaimana tingkat stress harian Anda?",
+      options: ["Tinggi", "Sedang", "Rendah"],
     ),
   ];
 
@@ -86,14 +86,10 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         '/analysis-result',
         arguments: {
           'isKuesioner': true,
-          'usia': _questions[0].options[_selectedAnswers[0]],
-          'riwayatKeluargaText': _questions[1].options[_selectedAnswers[1]],
-          'beratBadanText': _questions[2].options[_selectedAnswers[2]],
-          'olahragaText': _questions[3].options[_selectedAnswers[3]],
-          'makananManisText': _questions[4].options[_selectedAnswers[4]],
-          'tidurText': _questions[5].options[_selectedAnswers[5]],
-          'gejalaText': _questions[6].options[_selectedAnswers[6]],
-          'hipertensiText': _questions[7].options[_selectedAnswers[7]],
+          'answers': List.generate(
+            _questions.length, 
+            (i) => _questions[i].options[_selectedAnswers[i]]
+          ),
         },
       );
     }

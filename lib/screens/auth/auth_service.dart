@@ -11,7 +11,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 class AuthService {
   // Base URL for backend REST API. Automatically switches between Web and Android Emulator.
   static String get baseUrl {
-    if (kIsWeb) {
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
       return 'http://localhost:5000/api/auth';
     }
     return 'http://10.0.2.2:5000/api/auth';
@@ -19,7 +19,7 @@ class AuthService {
 
   // Base API URL for endpoints outside /auth.
   static String get baseApiUrl {
-    if (kIsWeb) {
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
       return 'http://localhost:5000/api';
     }
     return 'http://10.0.2.2:5000/api';
@@ -66,6 +66,8 @@ class AuthService {
     required String email,
     required String password,
     required String fullName,
+    String? gender,
+    String? birthDate,
   }) async {
     try {
       if (email.isEmpty || password.isEmpty || fullName.isEmpty) {
@@ -84,6 +86,8 @@ class AuthService {
           'fullname': fullName,
           'email': email,
           'password': password,
+          'gender': gender,
+          'birth_date': birthDate,
         }),
       );
 
@@ -105,11 +109,15 @@ class AuthService {
     required String email,
     required String password,
     required String fullName,
+    String? gender,
+    String? birthDate,
   }) async {
     return await register(
       email: email,
       password: password,
       fullName: fullName,
+      gender: gender,
+      birthDate: birthDate,
     );
   }
 
@@ -406,12 +414,69 @@ class AuthService {
     }
   }
 
-  // UPDATE EMAIL (Mock)
+  // UPDATE EMAIL
   Future<void> updateEmail({
     required String newEmail,
     required String password,
   }) async {
-    throw Exception('Fitur edit email tidak didukung secara terpisah. Harap lakukan lewat edit profile.');
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
+
+      // 1. Verifikasi kata sandi
+      final loginUrl = Uri.parse('$baseUrl/login');
+      final loginResponse = await http.post(
+        loginUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': user.email,
+          'password': password,
+        }),
+      );
+
+      if (loginResponse.statusCode != 200) {
+        throw Exception('Kata sandi saat ini salah');
+      }
+
+      // 2. Perbarui profil dengan email baru
+      final token = await getToken();
+      final url = Uri.parse('$baseUrl/update-profile/${user.uid}');
+
+      final body = {
+        'fullname': user.displayName ?? '',
+        'email': newEmail,
+        if (user.gender != null) 'gender': user.gender,
+        if (user.birthDate != null) 'birth_date': user.birthDate,
+        'profile_image': user.photoURL ?? '',
+      };
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final updatedUserJson = data['user'];
+        if (updatedUserJson != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_data', jsonEncode(updatedUserJson));
+          
+          _currentUser = CustomUser.fromJson(updatedUserJson);
+          _authController.add(_currentUser);
+        }
+      } else {
+        throw Exception(data['message'] ?? 'Gagal memperbarui email');
+      }
+    } catch (e) {
+      debugPrint("Error updating email: $e");
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
   // FETCH USER DATA FROM DATABASE
@@ -615,6 +680,96 @@ class AuthService {
       }
     } catch (e) {
       debugPrint("Error running AI prediction: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // RUN AI PREDICTION FOR CLINICAL MODE
+  Future<Map<String, dynamic>> getClinicalPrediction({
+    required double hba1c,
+    required int gulaDarahPuasa,
+    required double beratBadan,
+    required double tinggiBadan,
+    required double lingkarPinggang,
+    required double hdl,
+    required double trigliserida,
+    required double sistolik,
+    required double diastolik,
+    required String riwayatKeluarga,
+    required String riwayatDiabetes,
+  }) async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/ai/predict/clinical');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'user_id': user.uid,
+          'hba1c': hba1c,
+          'gula_darah_puasa': gulaDarahPuasa,
+          'berat_badan': beratBadan,
+          'tinggi_badan': tinggiBadan,
+          'lingkar_pinggang': lingkarPinggang,
+          'hdl': hdl,
+          'trigliserida': trigliserida,
+          'tekanan_sistolik': sistolik,
+          'tekanan_diastolik': diastolik,
+          'riwayat_keluarga': riwayatKeluarga,
+          'riwayat_diabetes': riwayatDiabetes,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data as Map<String, dynamic>;
+      } else {
+        throw Exception(data['message'] ?? 'Gagal memproses prediksi AI klinis');
+      }
+    } catch (e) {
+      debugPrint("Error running clinical AI prediction: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // RUN AI PREDICTION FOR QUESTIONNAIRE MODE
+  Future<Map<String, dynamic>> getQuestionnairePrediction({
+    required List<String> answers,
+  }) async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) throw Exception('User tidak ditemukan');
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/ai/predict/questionnaire');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'user_id': user.uid,
+          'answers': answers,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data as Map<String, dynamic>;
+      } else {
+        throw Exception(data['message'] ?? 'Gagal memproses prediksi AI kuesioner');
+      }
+    } catch (e) {
+      debugPrint("Error running questionnaire AI prediction: $e");
       throw Exception(e.toString().replaceFirst('Exception: ', ''));
     }
   }

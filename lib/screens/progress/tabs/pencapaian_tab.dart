@@ -1,14 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../auth/auth_service.dart';
+import '../plan_service.dart';
 
-class PencapaianTab extends StatelessWidget {
+class PencapaianTab extends StatefulWidget {
   const PencapaianTab({super.key});
 
   @override
+  State<PencapaianTab> createState() => _PencapaianTabState();
+}
+
+class _PencapaianTabState extends State<PencapaianTab> {
+  bool _loading = true;
+  String _error = '';
+  List<String> _userAchievements = [];
+  final PlanService _planService = PlanService();
+
+  static const List<Map<String, dynamic>> _allAchievements = [
+    {'id': 'FIRST_STEP', 'icon': '⭐', 'title': 'First Step', 'subtitle': 'Lakukan pelacakan harian pertama', 'xp': 50},
+    {'id': 'GLUCOSE_TRACKER', 'icon': '🩸', 'title': 'Glucose Tracker', 'subtitle': 'Masukan data gula darah pertama', 'xp': 50},
+    {'id': 'STREAK_7', 'icon': '🔥', 'title': 'Week Warrior', 'subtitle': 'Aktif 7 hari berturut-turut', 'xp': 100},
+    {'id': 'STREAK_14', 'icon': '💪', 'title': 'Consistency Master', 'subtitle': 'Aktif 14 hari berturut-turut', 'xp': 200},
+    {'id': 'STREAK_30', 'icon': '🏆', 'title': 'Monthly Master', 'subtitle': 'Aktif 30 hari berturut-turut', 'xp': 500},
+    {'id': 'LEVEL_5', 'icon': '🌟', 'title': 'Level 5 Achiever', 'subtitle': 'Mencapai Level 5', 'xp': 300},
+    {'id': 'LEVEL_10', 'icon': '👑', 'title': 'Level 10 Master', 'subtitle': 'Mencapai Level 10', 'xp': 500},
+    {'id': 'PROGRAM_COMPLETED', 'icon': '🚀', 'title': 'Program Completed', 'subtitle': 'Menyelesaikan program 90 Hari', 'xp': 1000},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAchievements();
+  }
+
+  Future<void> _fetchAchievements() async {
+    try {
+      final user = AuthService().currentUser;
+      if (user != null) {
+        final planData = await _planService.getPlanData(user.uid);
+        if (mounted) {
+          setState(() {
+            if (planData['achievements'] != null) {
+              _userAchievements = List<String>.from(planData['achievements']);
+            }
+            _loading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Gagal memuat pencapaian: ${e.toString()}';
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Center(child: Text(_error, style: const TextStyle(color: Colors.red))),
+      );
+    }
+
+    final earned = _allAchievements.where((a) => _userAchievements.contains(a['id'])).toList();
+    final locked = _allAchievements.where((a) => !_userAchievements.contains(a['id'])).toList();
+
     return Column(
       children: [
+        // Container: Diraih
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -25,24 +95,28 @@ class PencapaianTab extends StatelessWidget {
                 const Icon(Icons.emoji_events_outlined, color: Color(0xFFD97706), size: 20),
                 const SizedBox(width: 8),
                 Text('Diraih ', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                Text('(4)', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF10B981))),
+                Text('(${earned.length})', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF10B981))),
               ]),
               const SizedBox(height: 20),
-              Row(children: [
-                Expanded(child: _buildAchievedCard(icon: '⭐', title: 'First Step!', subtitle: 'Selesaikan tugas pertama', xp: '+50 XP')),
-                const SizedBox(width: 16),
-                Expanded(child: _buildAchievedCard(icon: '🩺', title: 'Health Aware', subtitle: 'Selesaikan risk assessment', xp: '+150 XP')),
-              ]),
-              const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: _buildAchievedCard(icon: '📅', title: 'Planner Pro', subtitle: 'Buat rencana 90 hari', xp: '+80 XP')),
-                const SizedBox(width: 16),
-                Expanded(child: _buildAchievedCard(icon: '📊', title: 'Progress Check', subtitle: 'Lakukan re-assessment', xp: '+200 XP')),
-              ]),
+              if (earned.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Belum ada pencapaian.\nSelesaikan tugas harian untuk meraih lencana!',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[400]),
+                    ),
+                  ),
+                )
+              else
+                _buildEarnedGrid(earned),
             ],
           ),
         ),
         const SizedBox(height: 24),
+        
+        // Container: Belum Diraih
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -57,20 +131,65 @@ class PencapaianTab extends StatelessWidget {
             children: [
               Row(children: [
                 Text('Belum Diraih ', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                Text('(5)', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+                Text('(${locked.length})', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[500])),
               ]),
               const SizedBox(height: 16),
-              _buildLockedAchievedCard(icon: '🔥', title: '3 Days Strong', subtitle: '3 hari berturut-turut aktif', xp: '+ 100 XP'),
-              _buildLockedAchievedCard(icon: '💪', title: 'Week Warrior', subtitle: '7 hari berturut-turut', xp: '+ 200 XP'),
-              _buildLockedAchievedCard(icon: '🏆', title: 'Monthly Master', subtitle: '30 hari berturut-turut', xp: '+ 500 XP'),
-              _buildLockedAchievedCard(icon: '✨', title: 'Makan Sehat', subtitle: 'Pilihan makan siang sehat', xp: '+ 600 XP'),
-              _buildLockedAchievedCard(icon: '🎯', title: 'Makan Sehat', subtitle: 'Pilihan makan siang sehat', xp: '+ 700 XP'),
+              if (locked.isEmpty)
+                Center(
+                  child: Text(
+                    'Luar biasa! Anda telah meraih semua pencapaian.',
+                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.green[600]),
+                  ),
+                )
+              else
+                ...locked.map((item) => _buildLockedAchievedCard(
+                  icon: item['icon'] as String,
+                  title: item['title'] as String,
+                  subtitle: item['subtitle'] as String,
+                  xp: '+ ${item['xp']} XP',
+                )),
             ],
           ),
         ),
         const SizedBox(height: 40),
       ],
     );
+  }
+
+  Widget _buildEarnedGrid(List<Map<String, dynamic>> earned) {
+    // Membangun grid 2 kolom
+    List<Widget> rows = [];
+    for (int i = 0; i < earned.length; i += 2) {
+      Widget left = _buildAchievedCard(
+        icon: earned[i]['icon'] as String,
+        title: earned[i]['title'] as String,
+        subtitle: earned[i]['subtitle'] as String,
+        xp: '+${earned[i]['xp']} XP',
+      );
+      
+      Widget right = (i + 1 < earned.length)
+        ? _buildAchievedCard(
+            icon: earned[i + 1]['icon'] as String,
+            title: earned[i + 1]['title'] as String,
+            subtitle: earned[i + 1]['subtitle'] as String,
+            xp: '+${earned[i + 1]['xp']} XP',
+          )
+        : const SizedBox.shrink(); // Empty space if odd
+
+      rows.add(
+        Row(
+          children: [
+            Expanded(child: left),
+            const SizedBox(width: 16),
+            Expanded(child: right),
+          ],
+        ),
+      );
+      if (i + 2 < earned.length) {
+        rows.add(const SizedBox(height: 16));
+      }
+    }
+    return Column(children: rows);
   }
 
   Widget _buildAchievedCard({required String icon, required String title, required String subtitle, required String xp}) {

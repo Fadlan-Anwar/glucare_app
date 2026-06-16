@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../auth/auth_service.dart';
 
 class ClinicalModeScreen extends StatefulWidget {
   const ClinicalModeScreen({super.key});
@@ -9,92 +10,190 @@ class ClinicalModeScreen extends StatefulWidget {
 }
 
 class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
-  final TextEditingController _hba1cController = TextEditingController(text: '5.9');
-  final TextEditingController _gulaDarahController = TextEditingController(text: '108');
-  final TextEditingController _beratBadanController = TextEditingController(text: '72');
-  final TextEditingController _tinggiBadanController = TextEditingController(text: '168');
+  final TextEditingController _usiaController = TextEditingController();
+  final TextEditingController _gulaDarahController = TextEditingController();
+  final TextEditingController _beratBadanController = TextEditingController();
+  final TextEditingController _tinggiBadanController = TextEditingController();
+  final TextEditingController _lingkarPinggangController = TextEditingController();
+  final TextEditingController _hdlController = TextEditingController();
+  final TextEditingController _trigliseridaController = TextEditingController();
+  final TextEditingController _sistolikController = TextEditingController();
+  final TextEditingController _diastolikController = TextEditingController();
+  
+  int _calculatedAge = 0;
+  double _progress = 0.0;
+  int _filledFields = 0;
 
-  String _riwayatKeluarga1 = 'Ya';
-  String _riwayatKeluarga2 = 'Ya';
+  @override
+  void initState() {
+    super.initState();
+    _calculateAge();
+    
+    final controllers = [
+      _gulaDarahController, _beratBadanController, _tinggiBadanController,
+      _lingkarPinggangController, _hdlController, _trigliseridaController,
+      _sistolikController, _diastolikController
+    ];
+    for (var c in controllers) {
+      c.addListener(_updateProgress);
+    }
+  }
+
+  void _updateProgress() {
+    int filled = 0;
+    if (_gulaDarahController.text.isNotEmpty) filled++;
+    if (_beratBadanController.text.isNotEmpty) filled++;
+    if (_tinggiBadanController.text.isNotEmpty) filled++;
+    if (_lingkarPinggangController.text.isNotEmpty) filled++;
+    if (_hdlController.text.isNotEmpty) filled++;
+    if (_trigliseridaController.text.isNotEmpty) filled++;
+    if (_sistolikController.text.isNotEmpty) filled++;
+    if (_diastolikController.text.isNotEmpty) filled++;
+    
+    setState(() {
+      _filledFields = filled;
+      _progress = filled / 8;
+    });
+  }
+
+  void _calculateAge() {
+    final user = AuthService().currentUser;
+    if (user != null && user.birthDate != null && user.birthDate!.isNotEmpty) {
+      try {
+        final birthDate = DateTime.parse(user.birthDate!);
+        final today = DateTime.now();
+        int age = today.year - birthDate.year;
+        if (today.month < birthDate.month || (today.month == birthDate.month && today.day < birthDate.day)) {
+          age--;
+        }
+        setState(() {
+          _calculatedAge = age;
+          _usiaController.text = age.toString();
+        });
+      } catch (e) {
+        debugPrint("Error parsing birthDate: $e");
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _hba1cController.dispose();
+    _usiaController.dispose();
     _gulaDarahController.dispose();
     _beratBadanController.dispose();
     _tinggiBadanController.dispose();
+    _lingkarPinggangController.dispose();
+    _hdlController.dispose();
+    _trigliseridaController.dispose();
+    _sistolikController.dispose();
+    _diastolikController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           _buildHeader(context),
+          _buildProgressBar(),
           Expanded(
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Masukkan hasil pemeriksaan laboratorium terbaru Anda.',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: const Color(0xFF334155),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildLabResultsCard(),
-                  const SizedBox(height: 16),
-                  _buildFamilyHistoryCard1(),
-                  const SizedBox(height: 16),
-                  _buildFamilyHistoryCard2(),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Navigate to result screen with arguments
-                        Navigator.pushNamed(
-                          context, 
-                          '/analysis-result',
-                          arguments: {
-                            'isLab': true,
-                            'hba1c': double.tryParse(_hba1cController.text) ?? 5.9,
-                            'gulaDarah': int.tryParse(_gulaDarahController.text) ?? 108,
-                            'berat': double.tryParse(_beratBadanController.text) ?? 72,
-                            'tinggi': double.tryParse(_tinggiBadanController.text) ?? 168,
-                            'riwayatKeluarga': _riwayatKeluarga1 == 'Ya' || _riwayatKeluarga2 == 'Ya',
-                            'riwayatKeluargaText': _riwayatKeluarga1,
-                            'riwayatDiabetesText': _riwayatKeluarga2,
-                          },
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3B82F6),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Analisis Sekarang',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Lengkapi data di bawah ini untuk memulai analisis AI.',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
+            ),
+            const SizedBox(height: 32),
+
+            _buildSectionHeader('Gula Darah'),
+            _buildMobileInputField('Gula Darah Puasa', _gulaDarahController, 'mg/dL', placeholder: 'Contoh: 95'),
+            const SizedBox(height: 24),
+
+            _buildSectionHeader('Data Tubuh'),
+            Row(
+              children: [
+                Expanded(child: _buildMobileInputField('Berat Badan', _beratBadanController, 'kg', placeholder: '65')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildMobileInputField('Tinggi Badan', _tinggiBadanController, 'cm', placeholder: '165')),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildMobileInputField('Lingkar Pinggang', _lingkarPinggangController, 'cm', placeholder: 'Contoh: 85'),
+            const SizedBox(height: 24),
+
+            _buildSectionHeader('Profil Lipid'),
+            Row(
+              children: [
+                Expanded(child: _buildMobileInputField('Kolesterol HDL', _hdlController, 'mg/dL', placeholder: '55')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildMobileInputField('Trigliserida', _trigliseridaController, 'mg/dL', placeholder: '130')),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            _buildSectionHeader('Tekanan Darah'),
+            Row(
+              children: [
+                Expanded(child: _buildMobileInputField('Sistolik (Atas)', _sistolikController, 'mmHg', placeholder: '120')),
+                const SizedBox(width: 16),
+                Expanded(child: _buildMobileInputField('Diastolik (Bawah)', _diastolikController, 'mmHg', placeholder: '80')),
+              ],
+            ),
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _progress == 1.0 ? () {
+                  Navigator.pushNamed(
+                    context, 
+                    '/analysis-result',
+                    arguments: {
+                      'isLab': true,
+                      'usia': _calculatedAge > 0 ? _calculatedAge : (int.tryParse(_usiaController.text) ?? 0),
+                      'gula_darah_puasa': double.tryParse(_gulaDarahController.text) ?? 0,
+                      'berat_badan': double.tryParse(_beratBadanController.text) ?? 0,
+                      'tinggi_badan': double.tryParse(_tinggiBadanController.text) ?? 0,
+                      'lingkar_pinggang': double.tryParse(_lingkarPinggangController.text) ?? 0,
+                      'hdl': double.tryParse(_hdlController.text) ?? 0,
+                      'trigliserida': double.tryParse(_trigliseridaController.text) ?? 0,
+                      'tekanan_sistolik': double.tryParse(_sistolikController.text) ?? 0,
+                      'tekanan_diastolik': double.tryParse(_diastolikController.text) ?? 0,
+                    },
+                  );
+                } : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  disabledBackgroundColor: Colors.grey[300],
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.grey[500],
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  _progress == 1.0 ? 'Analisis Sekarang' : 'Lengkapi Data ($_filledFields/8)',
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
             ),
           ),
         ],
@@ -146,7 +245,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Masukkan data untuk analisis Ai',
+                    'Masukkan data untuk analisis AI',
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.9),
@@ -161,70 +260,82 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
     );
   }
 
-  Widget _buildLabResultsCard() {
+  Widget _buildProgressBar() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInputField(
-            title: 'HbA1c (%)',
-            controller: _hba1cController,
-            suffix: '%',
-            subtext: 'Normal < 5.7% · Prediabetes 5.7-6.4% · DM ≥ 6.5%',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Kelengkapan Data',
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+              ),
+              Text(
+                '$_filledFields/8 Terisi',
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: _progress == 1.0 ? Colors.green : const Color(0xFF3B82F6)),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          _buildInputField(
-            title: 'Gula Darah Puasa (mg/dL)',
-            controller: _gulaDarahController,
-            suffix: 'mg/dl',
-            subtext: 'Normal < 100 · Prediabetes 100-125 · DM ≥ 126',
-          ),
-          const SizedBox(height: 20),
-          _buildInputField(
-            title: 'Berat Badan (kg)',
-            controller: _beratBadanController,
-            suffix: 'kg',
-            subtext: 'Untuk kalkulasi BMI',
-          ),
-          const SizedBox(height: 20),
-          _buildInputField(
-            title: 'Tinggi Badan (cm)',
-            controller: _tinggiBadanController,
-            suffix: 'cm',
-            subtext: 'BMI Asia: Normal < 23 · Overweight 23-27.4 · Obese ≥ 27.5',
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: _progress),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOutQuart,
+              builder: (context, value, _) {
+                return LinearProgressIndicator(
+                  value: value,
+                  backgroundColor: Colors.grey[200],
+                  valueColor: AlwaysStoppedAnimation<Color>(_progress == 1.0 ? Colors.green : const Color(0xFF3B82F6)),
+                  minHeight: 8,
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInputField({
-    required String title,
-    required TextEditingController controller,
-    required String suffix,
-    required String subtext,
-  }) {
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF1E293B),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileInputField(String title, TextEditingController controller, String suffix, {String? placeholder}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
           style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1F2937),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF475569),
           ),
         ),
         const SizedBox(height: 8),
@@ -232,7 +343,7 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFF1F5F9)),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
@@ -241,169 +352,33 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                   controller: controller,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    color: Colors.grey[500],
+                    fontSize: 14,
+                    color: const Color(0xFF1E293B),
                   ),
                   decoration: InputDecoration(
+                    hintText: placeholder,
+                    hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     isDense: true,
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Text(
-                  suffix,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF3B82F6),
+              if (suffix.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Text(
+                    suffix,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF94A3B8),
+                    ),
                   ),
                 ),
-              ),
             ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtext,
-          style: GoogleFonts.poppins(
-            fontSize: 10,
-            color: Colors.grey[600],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFamilyHistoryCard1() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Riwayat Keluarga Diabetes',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildSelectOption1('Ya')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildSelectOption1('Tidak')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildSelectOption1('Tidak Tahu')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSelectOption1(String text) {
-    final isSelected = _riwayatKeluarga1 == text;
-    return GestureDetector(
-      onTap: () => setState(() => _riwayatKeluarga1 = text),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFBFDBFE) : Colors.transparent,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFamilyHistoryCard2() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Pernah Didiagnosis Hipertensi',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1F2937),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildSelectOption2('Ya')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildSelectOption2('Tidak')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSelectOption2(String text) {
-    final isSelected = _riwayatKeluarga2 == text;
-    return GestureDetector(
-      onTap: () => setState(() => _riwayatKeluarga2 = text),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFBFDBFE) : Colors.transparent,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? const Color(0xFF1D4ED8) : const Color(0xFF334155),
-          ),
-        ),
-      ),
     );
   }
 }

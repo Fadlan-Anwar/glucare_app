@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'plan_service.dart';
 import '../home/dashboard_screen.dart';
 import 'tabs/hari_90_tab.dart';
 import 'tabs/pencapaian_tab.dart';
@@ -150,14 +152,23 @@ class _ProgressContentState extends State<ProgressContent> {
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: _buildHeaderMetricCard(Icons.local_fire_department_rounded, '1 hari', 'Streak')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildHeaderMetricCard(Icons.bolt_rounded, '1', 'Level')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildHeaderMetricCard(Icons.workspace_premium_rounded, '0', 'Pencapaian')),
-                ],
+              Consumer(
+                builder: (context, ref, child) {
+                  final planData = ref.watch(planDataProvider).value;
+                  final streak = planData != null ? (planData['currentStreak'] ?? 0) : 0;
+                  final level = planData != null ? (planData['level'] ?? 1) : 1;
+                  final achievements = planData != null ? (planData['achievements'] as List?)?.length ?? 0 : 0;
+
+                  return Row(
+                    children: [
+                      Expanded(child: _buildHeaderMetricCard(Icons.local_fire_department_rounded, '$streak hari', 'Streak')),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildHeaderMetricCard(Icons.bolt_rounded, '$level', 'Level')),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildHeaderMetricCard(Icons.workspace_premium_rounded, '$achievements', 'Pencapaian')),
+                    ],
+                  );
+                },
               ),
             ],
           ),

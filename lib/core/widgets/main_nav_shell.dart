@@ -58,7 +58,7 @@ class _MainNavShellState extends State<MainNavShell> {
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Beranda"),
           BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: "Analisis"),
           BottomNavigationBarItem(icon: Icon(Icons.lightbulb_outline), label: "Rekomendasi"),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Progres"),

@@ -41,6 +41,15 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
       return;
     }
 
+    final email = _emailController.text.trim();
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Format email baru tidak valid'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -60,9 +69,9 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Link verifikasi telah dikirim ke email baru Anda. Silakan klik link tersebut untuk menyelesaikan perubahan email.'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 10),
+            content: Text('Email Anda berhasil diubah.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
         Navigator.pop(context);

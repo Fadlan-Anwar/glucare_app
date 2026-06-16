@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../home/dashboard_screen.dart';
 import '../auth/auth_service.dart';
 import '../auth/auth_provider.dart';
+import '../../core/user_provider.dart';
 
 class AnalysisResultScreen extends ConsumerStatefulWidget {
-  // Keeping constructor matching main.dart for compatibility, but ignoring values
   final double? hba1c;
   final int? gulaDarah;
   final double? berat;
@@ -26,6 +26,10 @@ class AnalysisResultScreen extends ConsumerStatefulWidget {
 
 class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
   bool _isLoading = true;
+  int? _aiScore;
+  String _riskLevel = "Normal";
+  String _cta = "Jaga pola makan dan aktivitas fisik dengan konsisten.";
+  Map<String, dynamic>? _pastArgs;
 
   @override
   void initState() {
@@ -35,36 +39,109 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
     });
   }
 
+  void _extractScoreFromAiResponse(Map<String, dynamic> response, bool isLab) {
+    debugPrint("AI Response: $response");
+    try {
+      final aiResult = response['aiResult'];
+      if (aiResult != null && aiResult is Map) {
+         _riskLevel = aiResult['risk_level'] ?? "Normal";
+         _cta = aiResult['cta'] ?? _cta;
+         
+         if (isLab) {
+            if (aiResult['predict_proba'] != null) {
+               final proba = aiResult['predict_proba'] as List;
+               if (proba.length >= 3) {
+                  _aiScore = (((proba[1] as num) + (proba[2] as num)) * 100).round();
+               }
+            }
+            if (_aiScore == null) {
+                if (_riskLevel == "Diabetes" || _riskLevel == "high") _aiScore = 85;
+                else if (_riskLevel == "Prediabetes" || _riskLevel == "medium") _aiScore = 55;
+                else _aiScore = 25;
+            }
+         } else {
+             if (_riskLevel == "Diabetes" || _riskLevel == "high") {
+                _aiScore = 85;
+                _riskLevel = "Diabetes";
+             } else if (_riskLevel == "Prediabetes" || _riskLevel == "medium") {
+                _aiScore = 55;
+                _riskLevel = "Prediabetes";
+             } else {
+                _aiScore = 25;
+                _riskLevel = "Normal";
+             }
+         }
+      }
+    } catch (e) {
+      debugPrint("Error extracting score: $e");
+    }
+  }
+
   Future<void> _performAnalysisAndSave() async {
     final startTime = DateTime.now();
-
     try {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final authService = AuthService();
 
       if (args != null) {
-        if (args['isKuesioner'] == true) {
-          // Send questionnaire data to Express backend
-          await authService.submitKuesionerData(
-            usia: args['usia'] ?? '',
-            riwayatKeluarga: args['riwayatKeluargaText'] ?? '',
-            olahraga: args['olahragaText'] ?? '',
-            makananManis: args['makananManisText'] ?? '',
-            lingkarPinggang: args['beratBadanText'] ?? '', // Mapping weight text to lingkar_pinggang as a proxy
-            gejalaDiabetes: args['gejalaText'] ?? '', // Mapping lifestyle text to gejala_diabetes
-            jamTidur: args['tidurText'] ?? '',
-            tingkatStress: args['hipertensiText'] ?? '', // Mapping hypertension text to tingkat_stress
+        if (args['isPast'] == true) {
+          final latest = await ref.read(latestAnalysisProvider.future);
+          if (latest != null) {
+             final type = latest['type'];
+             final data = latest['data'] as Map<String, dynamic>;
+             
+             final score = data['score'] as int? ?? 0;
+             _aiScore = score;
+             if (score >= 60) _riskLevel = "high";
+             else if (score >= 30) _riskLevel = "medium";
+             else _riskLevel = "Normal";
+
+             Map<String, dynamic> generatedArgs = {
+                'isPast': true,
+                'isLab': type == 'lab',
+                'isKuesioner': type != 'lab',
+             };
+             if (type == 'lab') {
+                generatedArgs.addAll(data);
+             } else {
+                generatedArgs['answers'] = [
+                   '',
+                   data['riwayat_keluarga'] == 'Ya, kakek/nenek' || data['riwayat_keluarga'] == 'Ya, orang tua' ? 'Ada' : 'Tidak ada',
+                   data['olahraga']?.toString() ?? '',
+                   data['makanan_manis']?.toString() ?? '',
+                   data['lingkar_pinggang']?.toString() ?? '',
+                   '', '', 
+                   data['tingkat_stress'] == 'Ya' ? 'Tinggi' : 'Rendah',
+                ];
+                generatedArgs['usia'] = int.tryParse(data['usia']?.toString().split('-')[0] ?? '0') ?? 0;
+             }
+             if (mounted) {
+                setState(() {
+                   _pastArgs = generatedArgs;
+                });
+             }
+          }
+        } else if (args['isKuesioner'] == true) {
+          final answers = args['answers'] as List<String>? ?? [];
+          final aiResponse = await authService.getQuestionnairePrediction(
+            answers: answers,
           );
+          _extractScoreFromAiResponse(aiResponse, false);
         } else if (args['isLab'] == true) {
-          // Send lab data to Express backend
-          await authService.submitLabData(
-            hba1c: args['hba1c'] as double? ?? 5.9,
-            gulaDarahPuasa: args['gulaDarah'] as int? ?? 108,
-            beratBadan: args['berat'] as double? ?? 72.0,
-            tinggiBadan: args['tinggi'] as double? ?? 168.0,
-            riwayatKeluarga: args['riwayatKeluargaText'] ?? 'Ya',
-            riwayatDiabetes: args['riwayatDiabetesText'] ?? 'Ya',
+          final aiResponse = await authService.getClinicalPrediction(
+            hba1c: 0.0,
+            gulaDarahPuasa: (args['gula_darah_puasa'] as num?)?.toInt() ?? 108,
+            beratBadan: (args['berat_badan'] as num?)?.toDouble() ?? 72.0,
+            tinggiBadan: (args['tinggi_badan'] as num?)?.toDouble() ?? 168.0,
+            lingkarPinggang: (args['lingkar_pinggang'] as num?)?.toDouble() ?? 85.0,
+            hdl: (args['hdl'] as num?)?.toDouble() ?? 50.0,
+            trigliserida: (args['trigliserida'] as num?)?.toDouble() ?? 150.0,
+            sistolik: (args['tekanan_sistolik'] as num?)?.toDouble() ?? 120.0,
+            diastolik: (args['tekanan_diastolik'] as num?)?.toDouble() ?? 80.0,
+            riwayatKeluarga: '',
+            riwayatDiabetes: '',
           );
+          _extractScoreFromAiResponse(aiResponse, true);
         }
       }
       ref.invalidate(latestLabResultProvider);
@@ -74,14 +151,13 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Analisis berhasil, namun gagal sinkronisasi ke server: $e"),
+            content: Text("Analisis AI gagal: $e"),
             backgroundColor: Colors.orange,
           ),
         );
       }
     }
 
-    // Ensure the loading animation runs for at least 2.5 seconds
     final elapsed = DateTime.now().difference(startTime);
     final remaining = const Duration(milliseconds: 2500) - elapsed;
     if (remaining > Duration.zero) {
@@ -137,95 +213,109 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
       );
     }
 
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final routeArgs = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args = _pastArgs ?? routeArgs;
     
-    int score = 0;
-    double hba1c = 5.0;
-    double bmi = 21.0;
-    int gulaDarah = 90;
-    bool riwayatKeluarga = true;
+    int score = _aiScore ?? 0;
+    String riskLevel = _riskLevel;
+    String cta = _cta;
 
     final isKuesioner = args?['isKuesioner'] == true;
+    
+    List<Map<String, dynamic>> faktorRisiko = [];
+    List<Map<String, String>> parametersKlinis = [];
+
+    double hba1c = 0.0;
+    double bmi = 0.0;
+    int gulaDarah = 0;
 
     if (isKuesioner) {
-      int kuesionerPoints = 0;
-      
-      final usia = args?['usia']?.toString();
-      if (usia == '30-39 tahun') kuesionerPoints += 10;
-      else if (usia == '40+ tahun') kuesionerPoints += 20;
-      
-      final riwayat = args?['riwayatKeluargaText']?.toString();
-      if (riwayat == 'Ya, kakek/nenek') kuesionerPoints += 5;
-      else if (riwayat == 'Ya, orang tua' || riwayat == 'Ya, saudara kandung') kuesionerPoints += 10;
-      
-      final beratText = args?['beratBadanText']?.toString();
-      if (beratText == 'Sedikit kelebihan') kuesionerPoints += 10;
-      else if (beratText == 'Kelebihan berat badan') kuesionerPoints += 15;
-      else if (beratText == 'Obesitas') kuesionerPoints += 20;
-      
-      final olahraga = args?['olahragaText']?.toString();
-      if (olahraga == '1–2x per minggu') kuesionerPoints += 5;
-      else if (olahraga == 'Jarang sekali') kuesionerPoints += 10;
-      else if (olahraga == 'Tidak pernah') kuesionerPoints += 15;
-      
-      final makanan = args?['makananManisText']?.toString();
-      if (makanan == 'Cukup sehat') kuesionerPoints += 5;
-      else if (makanan == 'Sering makan cepat saji') kuesionerPoints += 10;
-      else if (makanan == 'Banyak gula & gorengan') kuesionerPoints += 15;
-      
-      final tidur = args?['tidurText']?.toString();
-      if (tidur == '5–6 jam') kuesionerPoints += 5;
-      else if (tidur == 'Kurang dari 5 jam' || tidur == 'Tidak teratur') kuesionerPoints += 10;
-      
-      final stress = args?['hipertensiText']?.toString();
-      if (stress == 'Ya') kuesionerPoints += 10;
-      
-      final gejala = args?['gejalaText']?.toString();
-      if (gejala == 'Kadang-kadang') kuesionerPoints += 5;
-      else if (gejala == 'Salah satu rutin') kuesionerPoints += 10;
-      else if (gejala == 'Keduanya rutin') kuesionerPoints += 15;
-      
-      score = ((kuesionerPoints / 115) * 100).round();
-      if (score > 100) score = 100;
-      
-      // Map proxy values for UI cards in result screen
-      hba1c = score >= 60 ? 6.5 : (score >= 30 ? 5.9 : 5.0);
-      gulaDarah = score >= 60 ? 130 : (score >= 30 ? 110 : 90);
-      bmi = beratText == 'Obesitas' ? 30.0 : (beratText == 'Kelebihan berat badan' ? 26.0 : (beratText == 'Sedikit kelebihan' ? 24.0 : 21.0));
-      riwayatKeluarga = riwayat == 'Ya, kakek/nenek' || riwayat == 'Ya, orang tua' || riwayat == 'Ya, saudara kandung';
+       final answers = args?['answers'] as List<String>? ?? [];
+       
+       if (answers.length >= 8) {
+          if (answers[1] == 'Ada') faktorRisiko.add({'text': 'Ada riwayat keluarga diabetes', 'isWarning': true});
+          if (answers[2] == 'Tidak pernah') faktorRisiko.add({'text': 'Kurang aktivitas fisik', 'isWarning': true});
+          if (answers[3] == 'Setiap hari') faktorRisiko.add({'text': 'Sering konsumsi makanan/minuman manis', 'isWarning': true});
+          if (answers[4] == 'Besar (Gemuk perut)' || answers[4] == 'Agak Besar') faktorRisiko.add({'text': 'Lingkar pinggang besar', 'isWarning': true});
+          if (answers[7] == 'Tinggi') faktorRisiko.add({'text': 'Tingkat stres tinggi', 'isWarning': true});
+       }
+       if (faktorRisiko.isEmpty) faktorRisiko.add({'text': 'Gaya hidup relatif sehat', 'isWarning': false});
+       
     } else {
-      final double rawHba1c = args?['hba1c'] as double? ?? widget.hba1c ?? 5.9;
-      final int rawGulaDarah = args?['gulaDarah'] as int? ?? widget.gulaDarah ?? 108;
-      final double rawBerat = args?['berat'] as double? ?? widget.berat ?? 72.0;
-      final double rawTinggi = args?['tinggi'] as double? ?? widget.tinggi ?? 168.0;
-      final bool rawRiwayatKeluarga = args?['riwayatKeluarga'] as bool? ?? true;
-      
-      hba1c = rawHba1c;
-      gulaDarah = rawGulaDarah;
-      riwayatKeluarga = rawRiwayatKeluarga;
-      
-      final tinggiM = rawTinggi / 100;
-      bmi = rawBerat / (tinggiM * tinggiM);
+       final gdpVal = (args?['gula_darah_puasa'] as num?)?.toDouble() ?? widget.gulaDarah?.toDouble() ?? 0.0;
+       final beratVal = (args?['berat_badan'] as num?)?.toDouble() ?? widget.berat ?? 0.0;
+       final tinggiVal = (args?['tinggi_badan'] as num?)?.toDouble() ?? widget.tinggi ?? 0.0;
+       final hdlVal = (args?['hdl'] as num?)?.toDouble() ?? 0.0;
+       final tgVal = (args?['trigliserida'] as num?)?.toDouble() ?? 0.0;
+       final sistolikVal = (args?['tekanan_sistolik'] as num?)?.toDouble() ?? 0.0;
+       final diastolikVal = (args?['tekanan_diastolik'] as num?)?.toDouble() ?? 0.0;
+       
+       final tinggiM = tinggiVal / 100;
+       final bmiVal = tinggiM > 0 ? beratVal / (tinggiM * tinggiM) : 0.0;
+       final tgHdl = hdlVal > 0 ? tgVal / hdlVal : 0.0;
 
-      if (hba1c >= 6.5) score += 40;
-      else if (hba1c >= 5.7) score += 20;
+       if (gdpVal >= 126) faktorRisiko.add({'text': 'Gula Darah Puasa (${gdpVal.toInt()} mg/dL) mengindikasikan level Diabetes.', 'isWarning': true});
+       else if (gdpVal >= 100) faktorRisiko.add({'text': 'Gula Darah Puasa (${gdpVal.toInt()} mg/dL) berada di zona Prediabetes.', 'isWarning': true});
+       
+       if (bmiVal >= 27.5) faktorRisiko.add({'text': 'Kategori BMI Obesitas (${bmiVal.toStringAsFixed(1)}) meningkatkan risiko metabolik secara signifikan.', 'isWarning': true});
+       else if (bmiVal >= 23) faktorRisiko.add({'text': 'Kategori BMI Overweight (${bmiVal.toStringAsFixed(1)}) memicu risiko metabolik.', 'isWarning': true});
+       
+       if (tgHdl >= 3) faktorRisiko.add({'text': 'Rasio TG/HDL tinggi (${tgHdl.toStringAsFixed(1)}) mengindikasikan kemungkinan resistensi insulin.', 'isWarning': true});
+       if (sistolikVal >= 130 || diastolikVal >= 85) faktorRisiko.add({'text': 'Tekanan darah (${sistolikVal.toInt()}/${diastolikVal.toInt()} mmHg) berada di atas rentang optimal.', 'isWarning': true});
+       
+       final lingkarPinggang = (args?['lingkar_pinggang'] as num?)?.toDouble() ?? 85.0;
+       if (lingkarPinggang > 90) faktorRisiko.add({'text': 'Lingkar pinggang (${lingkarPinggang.toInt()} cm) berisiko tinggi.', 'isWarning': true});
 
-      if (gulaDarah >= 126) score += 30;
-      else if (gulaDarah >= 100) score += 15;
+       if (faktorRisiko.isEmpty) faktorRisiko.add({'text': 'Tidak ada parameter klinis spesifik yang memicu risiko tinggi.', 'isWarning': false});
 
-      if (bmi >= 27.5) score += 20;
-      else if (bmi >= 23) score += 10;
+       String gdpStr = "Normal";
+       if (gdpVal >= 126) gdpStr = "Diabetes";
+       else if (gdpVal >= 100) gdpStr = "Prediabetes";
 
-      if (riwayatKeluarga) score += 10;
-      if (score > 100) score = 100;
+       String bmiStr = "Normal";
+       if (bmiVal < 18.5) bmiStr = "Berat badan kurang";
+       else if (bmiVal >= 27.5) bmiStr = "Obesitas";
+       else if (bmiVal >= 23) bmiStr = "Overweight";
+
+       int usia = (args?['usia'] as num?)?.toInt() ?? 0;
+       if (usia == 0) {
+         final birthDateStr = UserProvider.userNotifier.value.birthDate;
+         if (birthDateStr.isNotEmpty) {
+           try {
+              final birthDate = DateTime.parse(birthDateStr);
+              final now = DateTime.now();
+              usia = now.year - birthDate.year;
+              if (now.month < birthDate.month || (now.month == birthDate.month && now.day < birthDate.day)) {
+                usia--;
+              }
+           } catch (e) {
+              usia = 0;
+           }
+         }
+       }
+
+       parametersKlinis = [
+          {'label': 'Usia', 'value': usia > 0 ? '$usia tahun' : '-'},
+          {'label': 'BMI', 'value': '${bmiVal.toStringAsFixed(1)} ($bmiStr)'},
+          {'label': 'Gula Darah Puasa', 'value': '${gdpVal.toInt()} mg/dL ($gdpStr)'},
+          {'label': 'Tekanan Darah', 'value': '${sistolikVal.toInt()}/${diastolikVal.toInt()} mmHg'},
+          {'label': 'HDL', 'value': '${hdlVal.toInt()} mg/dL'},
+          {'label': 'Trigliserida', 'value': '${tgVal.toInt()} mg/dL'},
+          {'label': 'Rasio TG/HDL', 'value': '${tgHdl.toStringAsFixed(1)}'},
+          {'label': 'Lingkar Pinggang', 'value': '${lingkarPinggang.toInt()} cm'},
+       ];
+
+       hba1c = 0.0;
+       gulaDarah = gdpVal.toInt();
+       bmi = bmiVal;
     }
 
     String riskStatus = 'Normal';
     Color riskColor = const Color(0xFF10B981); // Green
-    if (score >= 60) {
+    if (riskLevel == 'Diabetes' || riskLevel == 'high') {
       riskStatus = 'Tinggi';
       riskColor = const Color(0xFFEF4444); // Red
-    } else if (score >= 30) {
+    } else if (riskLevel == 'Prediabetes' || riskLevel == 'medium') {
       riskStatus = 'Sedang';
       riskColor = const Color(0xFFF59E0B); // Orange
     }
@@ -246,13 +336,16 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
                   children: [
                     _buildRiskCard(score, riskStatus, riskColor),
                     const SizedBox(height: 16),
-                    _buildRiskFactorsCard(hba1c, bmi, gulaDarah, riwayatKeluarga),
+                    if (!isKuesioner && parametersKlinis.isNotEmpty) ...[
+                      _buildParameterKlinisCard(parametersKlinis),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildRiskFactorsCard(faktorRisiko),
                     const SizedBox(height: 16),
-                    _buildLabInterpretationCard(hba1c, bmi, gulaDarah),
+                    _buildKesimpulanCard(cta),
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: () {
-                        // Navigate to progress/intervention screen
                         DashboardContent.hasRiskDataNotifier.value = true;
                         DashboardContent.analysisDataNotifier.value = {
                           'score': score,
@@ -396,7 +489,7 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
       child: Column(
         children: [
           Icon(
-            score >= 60 ? Icons.warning_rounded : (score >= 30 ? Icons.info_outline_rounded : Icons.check_circle_outline_rounded),
+            riskStatus == 'Tinggi' ? Icons.dangerous_rounded : (riskStatus == 'Sedang' ? Icons.warning_amber_rounded : Icons.health_and_safety_rounded),
             color: riskColor,
             size: 64,
           ),
@@ -448,9 +541,9 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            score >= 60 
+            riskStatus == 'Tinggi' 
                 ? 'Indikasi Prediabetes/Diabetes'
-                : (score >= 30 ? 'Peringatan: Pola hidup perlu diperbaiki' : 'Risiko sangat rendah. Pertahankan!'),
+                : (riskStatus == 'Sedang' ? 'Peringatan: Pola hidup perlu diperbaiki' : 'Risiko sangat rendah. Pertahankan!'),
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: Colors.grey[500],
@@ -467,70 +560,12 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMetricBox('30 thn', 'Usia Kronologis', riskColor),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricBox('${30 + (score / 10).round()} thn', 'Usia Metabolik', riskColor),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildMetricBox('${(score * 0.6).round()}%', 'Risiko 5 Thn', riskColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            score >= 60 
-                ? 'Segera konsultasikan ke dokter. Program intervensi 90 hari GluCare sangat direkomendasikan.'
-                : (score >= 30 ? 'Mulai terapkan gaya hidup sehat untuk mencegah progresi ke diabetes.' : 'Kondisi kesehatan Anda optimal. Terus pertahankan pola makan dan aktivitas fisik yang baik!'),
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricBox(String value, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 9,
-              color: color.withValues(alpha: 0.8),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRiskFactorsCard(double hba1c, double bmi, int gulaDarah, bool riwayatKeluarga) {
+  Widget _buildRiskFactorsCard(List<Map<String, dynamic>> faktorRisiko) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -556,19 +591,7 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (hba1c >= 6.5) _buildRiskFactorItem('HbA1c ≥ 6.5% — rentang diabetes', true)
-          else if (hba1c >= 5.7) _buildRiskFactorItem('HbA1c 5.7-6.4% — prediabetes', true)
-          else _buildRiskFactorItem('HbA1c normal ($hba1c%)', false),
-
-          if (gulaDarah >= 126) _buildRiskFactorItem('Gula puasa ≥ 126 mg/dL — tinggi', true)
-          else if (gulaDarah >= 100) _buildRiskFactorItem('Gula puasa 100-125 mg/dL — prediabetes', true)
-          else _buildRiskFactorItem('Gula puasa normal', false),
-
-          if (bmi >= 27.5) _buildRiskFactorItem('BMI ≥ 27.5 — obesitas', true)
-          else if (bmi >= 23) _buildRiskFactorItem('BMI 23-27.4 — overweight', true)
-          else _buildRiskFactorItem('BMI normal', false),
-
-          if (riwayatKeluarga) _buildRiskFactorItem('Ada riwayat diabetes di keluarga', true),
+          ...faktorRisiko.map((f) => _buildRiskFactorItem(f['text'] as String, f['isWarning'] as bool)),
         ],
       ),
     );
@@ -589,13 +612,10 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Text(
-                isWarning ? '!' : '✓',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isWarning ? const Color(0xFFEF4444) : const Color(0xFF10B981),
-                ),
+              child: Icon(
+                isWarning ? Icons.priority_high_rounded : Icons.check_rounded,
+                size: 14,
+                color: isWarning ? const Color(0xFFEF4444) : const Color(0xFF10B981),
               ),
             ),
           ),
@@ -614,63 +634,119 @@ class _AnalysisResultScreenState extends ConsumerState<AnalysisResultScreen> {
     );
   }
 
-  Widget _buildLabInterpretationCard(double hba1c, double bmi, int gulaDarah) {
+  Widget _buildKesimpulanCard(String cta) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('🔬', style: TextStyle(fontSize: 16)),
+              const Icon(Icons.auto_awesome_rounded, color: Color(0xFFA855F7), size: 20),
               const SizedBox(width: 8),
               Text(
-                'Interpretasi Lab',
+                'Kesimpulan AI',
                 style: GoogleFonts.poppins(
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1D4ED8),
+                  color: const Color(0xFF1F2937),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildLabItem('HbA1c $hba1c%:', hba1c >= 6.5 ? '🔴' : (hba1c >= 5.7 ? '🟠' : '🟢'), hba1c >= 6.5 ? 'Diabetes' : (hba1c >= 5.7 ? 'Prediabetes' : 'Normal')),
-          const SizedBox(height: 6),
-          _buildLabItem('BMI ${bmi.toStringAsFixed(1)} kg/m²:', bmi >= 27.5 ? '🔴' : (bmi >= 23 ? '🟠' : '🟢'), bmi >= 27.5 ? 'Obesitas' : (bmi >= 23 ? 'Overweight' : 'Normal')),
-          const SizedBox(height: 6),
-          _buildLabItem('Gula Puasa $gulaDarah mg/dL:', gulaDarah >= 126 ? '🔴' : (gulaDarah >= 100 ? '🟠' : '🟢'), gulaDarah >= 126 ? 'Diabetes' : (gulaDarah >= 100 ? 'Prediabetes' : 'Normal')),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              cta,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF334155),
+                height: 1.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLabItem(String label, String icon, String status) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: const Color(0xFF1D4ED8),
+  Widget _buildParameterKlinisCard(List<Map<String, String>> parameters) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(width: 6),
-        Text(icon, style: const TextStyle(fontSize: 10)),
-        const SizedBox(width: 4),
-        Text(
-          status,
-          style: GoogleFonts.poppins(
-            fontSize: 12,
-            color: const Color(0xFF1D4ED8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.biotech_rounded, color: Color(0xFF3B82F6), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Parameter Klinis',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1F2937),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          ...parameters.asMap().entries.map((entry) {
+            final index = entry.key;
+            final param = entry.value;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        param['label']!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        param['value']!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (index < parameters.length - 1)
+                  const Divider(color: Color(0xFFF1F5F9), height: 1, thickness: 1),
+              ],
+            );
+          }),
+        ],
+      ),
     );
   }
 }

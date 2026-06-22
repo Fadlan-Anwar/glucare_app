@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
 import 'custom_user.dart';
+import '../../core/constants/api_config.dart';
 import '../../core/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen>
         profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
             ? (userData['profile_image'].toString().startsWith('http')
                 ? userData['profile_image']
-                : 'http://10.0.2.2:5000${userData['profile_image']}')
+                : '${ApiConfig.baseUrl}${userData['profile_image']}')
             : null,
       );
       

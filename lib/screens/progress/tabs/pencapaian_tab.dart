@@ -4,14 +4,17 @@ import '../../../core/constants/app_colors.dart';
 import '../../auth/auth_service.dart';
 import '../plan_service.dart';
 
-class PencapaianTab extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/network_provider.dart';
+
+class PencapaianTab extends ConsumerStatefulWidget {
   const PencapaianTab({super.key});
 
   @override
-  State<PencapaianTab> createState() => _PencapaianTabState();
+  ConsumerState<PencapaianTab> createState() => _PencapaianTabState();
 }
 
-class _PencapaianTabState extends State<PencapaianTab> {
+class _PencapaianTabState extends ConsumerState<PencapaianTab> {
   bool _loading = true;
   String _error = '';
   List<String> _userAchievements = [];
@@ -60,18 +63,22 @@ class _PencapaianTabState extends State<PencapaianTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(networkProvider, (previous, next) {
+      if (previous == NetworkStatus.offline && next == NetworkStatus.online) {
+        if (!mounted) return;
+        setState(() => _loading = true);
+        _fetchAchievements();
+      }
+    });
+
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.all(40),
         child: Center(child: CircularProgressIndicator()),
       );
     }
-    if (_error.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Center(child: Text(_error, style: const TextStyle(color: Colors.red))),
-      );
-    }
+    // We intentionally ignore showing raw errors to the user.
+    // If there's a network error, it will gracefully show the empty achievements state.
 
     final earned = _allAchievements.where((a) => _userAchievements.contains(a['id'])).toList();
     final locked = _allAchievements.where((a) => !_userAchievements.contains(a['id'])).toList();

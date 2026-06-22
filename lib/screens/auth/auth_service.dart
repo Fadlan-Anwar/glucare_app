@@ -4,26 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'custom_user.dart';
+import '../../core/constants/api_config.dart';
 import '../../core/user_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 class AuthService {
-  // Base URL for backend REST API. Automatically switches between Web and Android Emulator.
-  static String get baseUrl {
-    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:5000/api/auth';
-    }
-    return 'http://10.0.2.2:5000/api/auth';
-  }
+  // Base URL for backend REST API — uses centralized ApiConfig.
+  static String get baseUrl => ApiConfig.authUrl;
 
   // Base API URL for endpoints outside /auth.
-  static String get baseApiUrl {
-    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:5000/api';
-    }
-    return 'http://10.0.2.2:5000/api';
-  }
+  static String get baseApiUrl => ApiConfig.apiUrl;
   
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
@@ -174,6 +165,72 @@ class AuthService {
     _currentUser = null;
     _authController.add(null);
     UserProvider.clearProfile();
+  }
+
+  // LUPA SANDI - Kirim OTP
+  Future<void> forgotPassword(String email) async {
+    try {
+      final url = Uri.parse('$baseUrl/forgot-password');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw Exception(data['message'] ?? 'Gagal mengirim OTP');
+      }
+    } catch (e) {
+      debugPrint("Error in forgotPassword: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // LUPA SANDI - Verifikasi OTP
+  Future<String> verifyOtp(String email, String otp) async {
+    try {
+      final url = Uri.parse('$baseUrl/verify-otp');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return data['resetToken'] ?? '';
+      } else {
+        throw Exception(data['message'] ?? 'OTP tidak valid');
+      }
+    } catch (e) {
+      debugPrint("Error in verifyOtp: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // LUPA SANDI - Reset Password
+  Future<void> resetPassword(String resetToken, String newPassword, String confirmPassword) async {
+    try {
+      final url = Uri.parse('$baseUrl/reset-password');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'resetToken': resetToken,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw Exception(data['message'] ?? 'Gagal mereset kata sandi');
+      }
+    } catch (e) {
+      debugPrint("Error in resetPassword: $e");
+      throw Exception(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   // GOOGLE SIGN IN
@@ -399,9 +456,8 @@ class AuthService {
         final responseData = jsonDecode(response.body);
         final relativePath = responseData['imagePath'];
         if (relativePath != null) {
-          // Prepend host URL dynamically depending on platform
-          final host = kIsWeb ? 'http://localhost:5000' : 'http://10.0.2.2:5000';
-          return '$host$relativePath';
+          // Prepend host URL from centralized config
+          return '${ApiConfig.baseUrl}$relativePath';
         }
       } else {
         final error = jsonDecode(response.body);
@@ -560,14 +616,47 @@ class AuthService {
     }
   }
 
+  // FETCH AI RESULT FROM DATABASE
+  Future<Map<String, dynamic>?> fetchAiResult() async {
+    try {
+      final user = await checkCurrentUser();
+      if (user == null) return null;
+
+      final token = await getToken();
+      final url = Uri.parse('$baseApiUrl/ai/result/${user.uid}');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching ai result: $e");
+      return null;
+    }
+  }
+
   // SUBMIT LAB DATA
   Future<void> submitLabData({
     required double hba1c,
     required int gulaDarahPuasa,
     required double beratBadan,
     required double tinggiBadan,
+    required double lingkarPinggang,
+    required double hdl,
+    required double trigliserida,
+    required double sistolik,
+    required double diastolik,
     required String riwayatKeluarga,
     required String riwayatDiabetes,
+    required int usia,
   }) async {
     try {
       final user = await checkCurrentUser();
@@ -584,16 +673,20 @@ class AuthService {
         },
         body: jsonEncode({
           'user_id': user.uid,
-          'hba1c': hba1c,
-          'gula_darah_puasa': gulaDarahPuasa,
-          'berat_badan': beratBadan,
-          'tinggi_badan': tinggiBadan,
-          'riwayat_keluarga': riwayatKeluarga,
-          'riwayat_diabetes': riwayatDiabetes,
+          'age': usia,
+          'gender': (user.gender == 'Perempuan') ? 0 : 1,
+          'glucose_fasting': gulaDarahPuasa,
+          'waist_cm': lingkarPinggang,
+          'weight': beratBadan,
+          'height': tinggiBadan,
+          'hdl': hdl,
+          'triglycerides': trigliserida,
+          'bp_systolic': sistolik,
+          'bp_diastolic': diastolik,
         }),
       );
 
-      if (response.statusCode != 201) {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         final data = jsonDecode(response.body);
         throw Exception(data['message'] ?? 'Gagal menyimpan data lab');
       }
@@ -697,6 +790,7 @@ class AuthService {
     required double diastolik,
     required String riwayatKeluarga,
     required String riwayatDiabetes,
+    required int usia,
   }) async {
     try {
       final user = await checkCurrentUser();
@@ -724,6 +818,11 @@ class AuthService {
           'tekanan_diastolik': diastolik,
           'riwayat_keluarga': riwayatKeluarga,
           'riwayat_diabetes': riwayatDiabetes,
+          'usia': usia,
+          'umur': usia,
+          'gender': user.gender ?? 'Laki-laki',
+          'jenis_kelamin': user.gender ?? 'Laki-laki',
+          'bmi': tinggiBadan > 0 ? (beratBadan / ((tinggiBadan / 100) * (tinggiBadan / 100))) : 0.0,
         }),
       );
 
@@ -741,14 +840,17 @@ class AuthService {
 
   // RUN AI PREDICTION FOR QUESTIONNAIRE MODE
   Future<Map<String, dynamic>> getQuestionnairePrediction({
-    required List<String> answers,
+    required int bmiCategory,
+    required int waistCategory,
+    required int hypertension,
+    required int overweightHistory,
   }) async {
     try {
       final user = await checkCurrentUser();
       if (user == null) throw Exception('User tidak ditemukan');
 
       final token = await getToken();
-      final url = Uri.parse('$baseApiUrl/ai/predict/questionnaire');
+      final url = Uri.parse('$baseApiUrl/kuesioner/submit');
 
       final response = await http.post(
         url,
@@ -758,12 +860,15 @@ class AuthService {
         },
         body: jsonEncode({
           'user_id': user.uid,
-          'answers': answers,
+          'bmi_category': bmiCategory,
+          'waist_category': waistCategory,
+          'hypertension': hypertension,
+          'overweight_history': overweightHistory,
         }),
       );
 
       final data = jsonDecode(response.body);
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return data as Map<String, dynamic>;
       } else {
         throw Exception(data['message'] ?? 'Gagal memproses prediksi AI kuesioner');

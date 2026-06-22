@@ -6,14 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Core
 import 'core/constants/app_colors.dart';
 import 'core/widgets/main_nav_shell.dart';
+import 'core/widgets/network_banner_wrapper.dart';
 
 // Auth Screens
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/auth_choice_screen.dart';
 import 'screens/auth/auth_provider.dart';
+import 'screens/auth/forgot_password_screen.dart';
 
 // Analysis Screens (untuk push dari dalam tab)
 import 'screens/analysis/clinical_mode_screen.dart';
@@ -27,6 +30,10 @@ import 'screens/profile/settings/change_email_screen.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 
+import 'core/services/notification_service.dart';
+
+final ProviderContainer globalProviderContainer = ProviderContainer();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -34,7 +41,12 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const ProviderScope(child: GluCareApp()));
+  await NotificationService().init();
+
+  runApp(UncontrolledProviderScope(
+    container: globalProviderContainer,
+    child: const GluCareApp(),
+  ));
 }
 class GluCareApp extends ConsumerWidget {
   const GluCareApp({super.key});
@@ -46,6 +58,7 @@ class GluCareApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GluCare',
+      builder: (context, child) => NetworkBannerWrapper(child: child!),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.mainBlue),
         useMaterial3: true,
@@ -59,8 +72,10 @@ class GluCareApp extends ConsumerWidget {
         '/onboarding': (context) => const OnboardingScreen(),
 
          '/login': (context) => const LoginScreen(),
+         '/forgot-password': (context) => const ForgotPasswordScreen(),
          '/auth-choice': (context) => const AuthChoiceScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/complete-profile': (context) => const CompleteProfileScreen(),
 
          '/dashboard': (context) => const MainNavShell(initialIndex: 0),
          '/analysis': (context) => const MainNavShell(initialIndex: 1),

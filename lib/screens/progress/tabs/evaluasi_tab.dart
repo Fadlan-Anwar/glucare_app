@@ -6,14 +6,17 @@ import '../../home/dashboard_screen.dart';
 import '../../auth/auth_service.dart';
 import '../plan_service.dart';
 
-class EvaluasiTab extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/network_provider.dart';
+
+class EvaluasiTab extends ConsumerStatefulWidget {
   const EvaluasiTab({super.key});
 
   @override
-  State<EvaluasiTab> createState() => _EvaluasiTabState();
+  ConsumerState<EvaluasiTab> createState() => _EvaluasiTabState();
 }
 
-class _EvaluasiTabState extends State<EvaluasiTab> {
+class _EvaluasiTabState extends ConsumerState<EvaluasiTab> {
   Map<String, dynamic>? _planData;
   List<Map<String, dynamic>> _dailyData = [];
   List<Map<String, dynamic>> _glucoseData = [];
@@ -33,9 +36,15 @@ class _EvaluasiTabState extends State<EvaluasiTab> {
     try {
       final user = AuthService().currentUser;
       if (user != null) {
-        final planData = await _planService.getPlanData(user.uid);
-        final dailyData = await _planService.getDailyTracking(user.uid);
-        final glucoseData = await _planService.getGlucoseTracking(user.uid);
+        final results = await Future.wait([
+          _planService.getPlanData(user.uid),
+          _planService.getDailyTracking(user.uid),
+          _planService.getGlucoseTracking(user.uid),
+        ]);
+        
+        final planData = results[0] as Map<String, dynamic>;
+        final dailyData = results[1] as List<Map<String, dynamic>>;
+        final glucoseData = results[2] as List<Map<String, dynamic>>;
         
         final dataNotifier = DashboardContent.analysisDataNotifier.value ?? {};
         final score = dataNotifier['score'] as int? ?? null;
@@ -74,12 +83,19 @@ class _EvaluasiTabState extends State<EvaluasiTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(networkProvider, (previous, next) {
+      if (previous == NetworkStatus.offline && next == NetworkStatus.online) {
+        if (!mounted) return;
+        setState(() => _loading = true);
+        _fetchRealData();
+      }
+    });
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error.isNotEmpty) {
-      return Center(child: Text(_error, style: const TextStyle(color: Colors.red)));
-    }
+    // We intentionally ignore showing raw errors to the user.
+    // If there's a network error, it will gracefully show the empty evaluation state.
 
     List<double> sleepArr = _dailyData.map((d) => (d['sleep_hours'] as num?)?.toDouble() ?? 0).where((v) => v > 0).toList();
     List<double> walkArr = _dailyData.map((d) => (d['walking_minutes'] as num?)?.toDouble() ?? 0).where((v) => v > 0).toList();
@@ -484,7 +500,7 @@ class _EvaluasiTabState extends State<EvaluasiTab> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/rencana'), // Or whatever route
+                  onPressed: () => Navigator.pushNamed(context, '/progress'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0072CE),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -496,7 +512,7 @@ class _EvaluasiTabState extends State<EvaluasiTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/analisis'),
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/analysis'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0072CE),
                     side: const BorderSide(color: Color(0xFF0072CE)),

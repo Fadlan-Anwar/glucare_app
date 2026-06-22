@@ -92,6 +92,44 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate Live Values
+    final double? bb = double.tryParse(_beratBadanController.text);
+    final double? tb = double.tryParse(_tinggiBadanController.text);
+    double? bmiValue;
+    String? bmiLabel;
+    bool? bmiWarning;
+    if (bb != null && tb != null && tb > 0) {
+      final tbM = tb / 100;
+      bmiValue = bb / (tbM * tbM);
+      if (bmiValue < 18.5) {
+        bmiLabel = "Berat Kurang";
+        bmiWarning = true;
+      } else if (bmiValue < 23) {
+        bmiLabel = "Normal";
+        bmiWarning = false;
+      } else if (bmiValue < 27.5) {
+        bmiLabel = "Overweight";
+        bmiWarning = true;
+      } else {
+        bmiLabel = "Obesitas";
+        bmiWarning = true;
+      }
+    }
+
+    final double? hdl = double.tryParse(_hdlController.text);
+    final double? tg = double.tryParse(_trigliseridaController.text);
+    double? tgHdlValue;
+    if (hdl != null && tg != null && hdl > 0) {
+      tgHdlValue = tg / hdl;
+    }
+
+    final double? sis = double.tryParse(_sistolikController.text);
+    final double? dia = double.tryParse(_diastolikController.text);
+    double? mapValue;
+    if (sis != null && dia != null && sis > 0 && dia > 0) {
+      mapValue = (sis + 2 * dia) / 3;
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -126,27 +164,40 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
                 Expanded(child: _buildMobileInputField('Tinggi Badan', _tinggiBadanController, 'cm', placeholder: '165')),
               ],
             ),
+            if (bmiValue != null)
+              _buildLiveBadge('IMT (BMI): ${bmiValue.toStringAsFixed(1)}', bmiLabel!, bmiWarning!),
             const SizedBox(height: 16),
             _buildMobileInputField('Lingkar Pinggang', _lingkarPinggangController, 'cm', placeholder: 'Contoh: 85'),
             const SizedBox(height: 24),
 
             _buildSectionHeader('Profil Lipid'),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _buildMobileInputField('Kolesterol HDL', _hdlController, 'mg/dL', placeholder: '55')),
                 const SizedBox(width: 16),
                 Expanded(child: _buildMobileInputField('Trigliserida', _trigliseridaController, 'mg/dL', placeholder: '130')),
               ],
             ),
+            if (tgHdlValue != null)
+              _buildLiveBadge('Rasio Trigliserida/HDL', tgHdlValue.toStringAsFixed(2), tgHdlValue >= 3),
             const SizedBox(height: 24),
 
             _buildSectionHeader('Tekanan Darah'),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _buildMobileInputField('Sistolik (Atas)', _sistolikController, 'mmHg', placeholder: '120')),
                 const SizedBox(width: 16),
                 Expanded(child: _buildMobileInputField('Diastolik (Bawah)', _diastolikController, 'mmHg', placeholder: '80')),
               ],
+            ),
+            if (mapValue != null)
+              _buildLiveBadge('Tekanan Darah Rata-rata (MAP)', '${mapValue.toStringAsFixed(1)} mmHg', mapValue > 100),
+            const SizedBox(height: 8),
+            Text(
+              'Tekanan darah rata-rata dihitung otomatis oleh sistem.',
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[400]),
             ),
             const SizedBox(height: 40),
 
@@ -379,6 +430,60 @@ class _ClinicalModeScreenState extends State<ClinicalModeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLiveBadge(String label, String value, bool isWarning) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isWarning ? Colors.orange[50] : Colors.green[50],
+        border: Border.all(color: isWarning ? Colors.orange[200]! : Colors.green[200]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isWarning ? Colors.orange[700] : Colors.green[700],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isWarning ? Colors.orange[100] : Colors.green[100],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isWarning ? "Perlu Perhatian" : "Normal",
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isWarning ? Colors.orange[800] : Colors.green[800],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

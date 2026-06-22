@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/user_provider.dart';
 import '../auth/auth_provider.dart';
+import '../../core/providers/notification_provider.dart';
+import 'notification_list_screen.dart';
+import '../recommendation/recommendation_screen.dart';
 import '../progress/plan_service.dart';
 import '../auth/auth_service.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/providers/network_provider.dart';
 
 int _calculateKuesionerScore(Map<String, dynamic> data) {
   int score = 0;
@@ -61,6 +66,14 @@ class DashboardContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(networkProvider, (previous, next) {
+      if (previous == NetworkStatus.offline && next == NetworkStatus.online) {
+        ref.invalidate(latestAnalysisProvider);
+        ref.invalidate(planDataProvider);
+      }
+    });
+
+    final isOffline = ref.watch(networkProvider) == NetworkStatus.offline;
     final latestAnalysisAsync = ref.watch(latestAnalysisProvider);
     final planDataAsync = ref.watch(planDataProvider);
     final planData = planDataAsync.value;
@@ -100,14 +113,33 @@ class DashboardContent extends ConsumerWidget {
             if (score > 100) score = 100;
           } else {
             // Questionnaire
-            score = _calculateKuesionerScore(data);
+            if (data.containsKey('score')) {
+              score = (data['score'] as num).toInt();
+            } else if (data.containsKey('bmi_category')) {
+              final bmiCat = data['bmi_category'] as int? ?? 0;
+              final waistCat = data['waist_category'] as int? ?? 0;
+              final hyper = data['hypertension'] as int? ?? 0;
+              final history = data['overweight_history'] as int? ?? 0;
+              if (bmiCat == 1) score += 15;
+              if (bmiCat == 2) score += 30;
+              if (waistCat == 1) score += 20;
+              if (hyper == 1) score += 25;
+              if (history == 1) score += 25;
+            } else {
+              score = _calculateKuesionerScore(data);
+            }
             
             // Map proxy values for status indicator labels
             hba1c = score >= 60 ? 6.5 : (score >= 30 ? 5.9 : 5.0);
             gulaDarah = score >= 60 ? 130 : (score >= 30 ? 110 : 90);
             
-            final weight = data['lingkar_pinggang']?.toString();
-            bmi = weight == 'Obesitas' ? 30.0 : (weight == 'Kelebihan berat badan' ? 26.0 : (weight == 'Sedikit kelebihan' ? 24.0 : 21.0));
+            if (data.containsKey('bmi_category')) {
+              final b = data['bmi_category'] as int? ?? 0;
+              bmi = b == 2 ? 30.0 : (b == 1 ? 26.0 : 21.0);
+            } else {
+              final weight = data['lingkar_pinggang']?.toString();
+              bmi = weight == 'Obesitas' ? 30.0 : (weight == 'Kelebihan berat badan' ? 26.0 : (weight == 'Sedikit kelebihan' ? 24.0 : 21.0));
+            }
           }
 
           String riskStatus = 'Normal';
@@ -118,6 +150,37 @@ class DashboardContent extends ConsumerWidget {
           } else if (score >= 30) {
             riskStatus = 'Sedang';
             riskColor = const Color(0xFFF59E0B); // Orange
+          }
+
+          // Override with AI Result if available
+          final aiResultEnvelope = analysis['ai_result'];
+          if (aiResultEnvelope != null && aiResultEnvelope['aiResult'] != null) {
+            final aiRes = aiResultEnvelope['aiResult'];
+            final proba = aiRes['predict_proba'] as List<dynamic>? ?? [0, 0, 0];
+            double p1 = (proba.length > 1) ? (proba[1] as num).toDouble() : 0.0;
+            double p2 = (proba.length > 2) ? (proba[2] as num).toDouble() : 0.0;
+            
+            score = ((p1 + p2) * 100).round();
+            
+            final String aiRiskLevel = aiRes['risk_level']?.toString() ?? "Diabetes";
+            
+            if (aiRiskLevel == "Normal" || aiRiskLevel == "low") {
+              riskStatus = 'Normal';
+              riskColor = const Color(0xFF10B981); // Green
+            } else if (aiRiskLevel == "Prediabetes" || aiRiskLevel == "medium") {
+              riskStatus = 'Sedang';
+              riskColor = const Color(0xFFF59E0B); // Orange
+            } else if (aiRiskLevel == "high" || aiRiskLevel == "Diabetes") {
+              riskStatus = 'Tinggi';
+              riskColor = const Color(0xFFEF4444); // Red
+            }
+
+            // Adjust score based on mode if needed (matching React logic)
+            if (aiResultEnvelope['mode'] == 'questionnaire') {
+              if (aiRiskLevel == "Normal" || aiRiskLevel == "low") score = 25;
+              else if (aiRiskLevel == "Prediabetes" || aiRiskLevel == "medium") score = 55;
+              else if (aiRiskLevel == "high" || aiRiskLevel == "Diabetes") score = 85;
+            }
           }
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -176,9 +239,9 @@ class DashboardContent extends ConsumerWidget {
                       builder: (context, analysisData, child) {
                         return Column(
                           children: [
-                            _buildRiskStatusCard(context, hasRiskData),
+                            _buildRiskStatusCard(context, hasRiskData && !isOffline),
                             const SizedBox(height: 16),
-                            _buildStatsRow(hasRiskData, planData),
+                            _buildStatsRow(hasRiskData && !isOffline, planData),
                           ],
                         );
                       },
@@ -283,32 +346,49 @@ class DashboardContent extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey[200]!),
+          Consumer(
+            builder: (context, ref, child) {
+              final unreadCount = ref.watch(unreadNotificationCountProvider);
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NotificationListScreen()),
+                  );
+                },
+                child: Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Icon(Icons.notifications_none_rounded,
+                          color: Colors.grey[700], size: 24),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 10,
+                            minHeight: 10,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                child: Icon(Icons.notifications_none_rounded,
-                    color: Colors.grey[700], size: 24),
-              ),
-              Positioned(
-                right: 2,
-                top: 2,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),
@@ -413,32 +493,49 @@ class DashboardContent extends ConsumerWidget {
               }
             ),
             const SizedBox(width: 8),
-            Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey[200]!),
+            Consumer(
+              builder: (context, ref, child) {
+                final unreadCount = ref.watch(unreadNotificationCountProvider);
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const NotificationListScreen()),
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Icon(Icons.notifications_none_rounded,
+                            color: Colors.grey[700], size: 20),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 2,
+                          top: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 10,
+                              minHeight: 10,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  child: Icon(Icons.notifications_none_rounded,
-                      color: Colors.grey[700], size: 20),
-                ),
-                Positioned(
-                  right: 2,
-                  top: 2,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ],
         );
@@ -454,9 +551,12 @@ class DashboardContent extends ConsumerWidget {
       final Color riskColor = data['riskColor'] as Color? ?? const Color(0xFFEF4444);
       final double hba1c = data['hba1c'] as double? ?? 6.5;
 
-      String label = 'Normal';
-      if (hba1c >= 6.5) label = 'Diabetes';
-      else if (hba1c >= 5.7) label = 'Prediabetes';
+      String statusText = 'Indikasi Diabetes';
+      if (riskStatus == 'Normal' || riskStatus == 'Rendah') {
+        statusText = 'Kondisi Normal';
+      } else if (riskStatus == 'Sedang') {
+        statusText = 'Indikasi Prediabetes';
+      }
 
       return Container(
         width: double.infinity,
@@ -499,7 +599,7 @@ class DashboardContent extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    label == 'Normal' ? 'Kondisi Normal' : 'Indikasi $label',
+                    statusText,
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       color: Colors.white,
@@ -598,16 +698,16 @@ class DashboardContent extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
           colors: [
-            Color(0xFF3B82F6),
-            Color(0xFF1D4ED8),
+            Color(0xFF1E88E5),
+            Color(0xFF42A5F5),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+            color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -876,6 +976,15 @@ class _DailyTrackingDashboardWidgetState extends ConsumerState<DailyTrackingDash
           _isSubmitting = false;
         });
         ref.invalidate(planDataProvider);
+        ref.read(planRefreshProvider.notifier).increment();
+        
+        // Trigger system notification
+        await NotificationService().showNotification(
+          id: 1,
+          title: 'GluCare Daily Tracking',
+          body: 'Progress harianmu berhasil disimpan! Terus pertahankan streak-mu.',
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Container(
@@ -1000,7 +1109,20 @@ class _DailyTrackingDashboardWidgetState extends ConsumerState<DailyTrackingDash
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || !_isEnrolled) return const SizedBox.shrink();
+    ref.listen(networkProvider, (previous, next) {
+      if (previous == NetworkStatus.offline && next == NetworkStatus.online) {
+        if (!mounted) return;
+        setState(() => _isLoading = true);
+        _fetchPlanData();
+      }
+    });
+
+    ref.listen(planRefreshProvider, (_, __) {
+      _fetchPlanData();
+    });
+
+    final isOffline = ref.watch(networkProvider) == NetworkStatus.offline;
+    if (_isLoading || !_isEnrolled || isOffline) return const SizedBox.shrink();
 
     final day = _planData?['day'] ?? 1;
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../phase1_detail_screen.dart';
@@ -7,14 +8,17 @@ import '../phase3_detail_screen.dart';
 import '../plan_service.dart';
 import '../../auth/auth_service.dart';
 import '../../home/dashboard_screen.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../core/providers/notification_provider.dart';
+import '../../../core/providers/network_provider.dart';
 
-class Hari90Tab extends StatefulWidget {
+class Hari90Tab extends ConsumerStatefulWidget {
   const Hari90Tab({super.key});
   @override
-  State<Hari90Tab> createState() => _Hari90TabState();
+  ConsumerState<Hari90Tab> createState() => _Hari90TabState();
 }
 
-class _Hari90TabState extends State<Hari90Tab> {
+class _Hari90TabState extends ConsumerState<Hari90Tab> {
   final PlanService _planService = PlanService();
   bool _isLoading = true;
   bool _isEnrolled = false;
@@ -31,8 +35,6 @@ class _Hari90TabState extends State<Hari90Tab> {
   // Glucose Tracking State
   final _glucoseController = TextEditingController();
 
-  final List<bool> _reminderToggles = List.generate(6, (_) => false);
-
   @override
   void initState() {
     super.initState();
@@ -48,8 +50,8 @@ class _Hari90TabState extends State<Hari90Tab> {
     super.dispose();
   }
 
-  Future<void> _fetchPlanData() async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchPlanData({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final user = AuthService().currentUser;
       if (user == null) return;
@@ -79,10 +81,11 @@ class _Hari90TabState extends State<Hari90Tab> {
       final user = AuthService().currentUser;
       await _planService.enrollPlan(
         userId: user!.uid,
-        sleepTargetHours: double.parse(_sleepController.text),
-        walkingTargetMinutes: int.parse(_walkController.text),
+        sleepTargetHours: double.tryParse(_sleepController.text.replaceAll(',', '.')) ?? 7.0,
+        walkingTargetMinutes: int.tryParse(_walkController.text) ?? 30,
         nutritionGoal: _nutritionController.text,
       );
+      ref.read(planRefreshProvider.notifier).increment();
       await _fetchPlanData();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -113,6 +116,7 @@ class _Hari90TabState extends State<Hari90Tab> {
         );
       }
       _glucoseController.clear();
+      ref.read(planRefreshProvider.notifier).increment();
       await _fetchPlanData();
     } catch (e) {
       if (mounted) {
@@ -125,6 +129,23 @@ class _Hari90TabState extends State<Hari90Tab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(networkProvider, (previous, next) {
+      if (previous == NetworkStatus.offline && next == NetworkStatus.online) {
+        if (!mounted) return;
+        setState(() => _isLoading = true);
+        _fetchPlanData();
+      }
+    });
+    
+    ref.listen(planRefreshProvider, (_, __) {
+      if (mounted) {
+        _fetchPlanData(silent: true);
+      }
+    });
+
+    final isDailyReminderOn = ref.watch(dailyReminderProvider);
+    final isOffline = ref.watch(networkProvider) == NetworkStatus.offline;
+
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 50),
@@ -132,7 +153,9 @@ class _Hari90TabState extends State<Hari90Tab> {
       );
     }
 
-    if (!_isEnrolled) {
+    final effectiveIsEnrolled = _isEnrolled && !isOffline;
+
+    if (!effectiveIsEnrolled) {
       return SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -144,11 +167,10 @@ class _Hari90TabState extends State<Hari90Tab> {
     return Column(children: [
       _buildIntervensi90Hari(), const SizedBox(height: 24),
       _buildLevelXP(), const SizedBox(height: 24),
-      _buildFaseIntervensi(), const SizedBox(height: 24),
       const DailyTrackingDashboardWidget(), const SizedBox(height: 24),
       _buildGlucoseTracker(), const SizedBox(height: 24),
-      _buildAktivitasChart(), const SizedBox(height: 24),
-      _buildPengingat(), const SizedBox(height: 40),
+      _buildFaseIntervensi(), const SizedBox(height: 24),
+      _buildPengingat(isDailyReminderOn), const SizedBox(height: 40),
     ]);
   }
 
@@ -514,15 +536,7 @@ class _Hari90TabState extends State<Hari90Tab> {
     );
   }
 
-  Widget _buildPengingat() {
-    final reminders = [
-      {'icon': Icons.wb_sunny_rounded, 'title': 'Cek pagi', 'subtitle': 'Log glukosa & berat badan', 'time': '07:00'},
-      {'icon': Icons.directions_run_rounded, 'title': 'Olahraga', 'subtitle': 'Pengingat aktivitas fisik', 'time': '07:30'},
-      {'icon': Icons.restaurant_rounded, 'title': 'Makan Sehat', 'subtitle': 'Pilihan makan siang sehat', 'time': '12:00'},
-      {'icon': Icons.medication_rounded, 'title': 'Suplemen', 'subtitle': 'Konsumsi suplemen harian', 'time': '20:00'},
-      {'icon': Icons.bedtime_rounded, 'title': 'Waktu Tidur', 'subtitle': 'Istirahat untuk metabolisme', 'time': '22:00'},
-      {'icon': Icons.water_drop_rounded, 'title': 'Minum Air', 'subtitle': 'Target 8 gelas per hari', 'time': '10:00'},
-    ];
+  Widget _buildPengingat(bool isDailyReminderOn) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
@@ -530,26 +544,34 @@ class _Hari90TabState extends State<Hari90Tab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('Pengingat', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-          Text('6 aktif', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
+          Text(isDailyReminderOn ? '1 aktif' : '0 aktif', style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1E88E5))),
         ]),
         const SizedBox(height: 16),
-        ...List.generate(reminders.length, (i) {
-          final r = reminders[i]; final isOn = _reminderToggles[i];
-          return Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey[100]!), borderRadius: BorderRadius.circular(16)),
-            child: Row(children: [
-              Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                child: Center(child: Icon(r['icon']! as IconData, size: 20, color: const Color(0xFF1E88E5)))),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r['title'] as String, style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-                Text(r['subtitle'] as String, style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500])),
-              ])),
-              Text(r['time'] as String, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[400])),
-              const SizedBox(width: 12),
-              Switch(value: isOn, onChanged: (v) => setState(() => _reminderToggles[i] = v), activeColor: const Color(0xFF1E88E5)),
-            ]));
-        }),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(border: Border.all(color: Colors.grey[100]!), borderRadius: BorderRadius.circular(16)),
+          child: Row(children: [
+            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF1E88E5).withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.notifications_active_rounded, color: Color(0xFF1E88E5), size: 20)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Pengingat Target Harian', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+              Text('Notifikasi untuk mengisi progres target harian', style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[500])),
+            ])),
+            Switch(
+              value: isDailyReminderOn, 
+              activeColor: const Color(0xFF1E88E5),
+              onChanged: (val) async {
+                await ref.read(dailyReminderProvider.notifier).toggle(val);
+                if (val) {
+                  await NotificationService().scheduleDailyReminder();
+                } else {
+                  await NotificationService().cancelDailyReminder();
+                }
+              }
+            )
+          ]),
+        ),
       ]),
     );
   }

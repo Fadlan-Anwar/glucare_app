@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../home/dashboard_screen.dart';
+import '../../core/providers/network_provider.dart';
 
-class RecommendationContent extends StatefulWidget {
+class RecommendationContent extends ConsumerStatefulWidget {
   const RecommendationContent({super.key});
 
   @override
-  State<RecommendationContent> createState() => _RecommendationContentState();
+  ConsumerState<RecommendationContent> createState() => _RecommendationContentState();
 }
 
-class _RecommendationContentState extends State<RecommendationContent> {
+class _RecommendationContentState extends ConsumerState<RecommendationContent> {
   int _selectedFilterIndex = 0;
 
   List<Map<String, dynamic>> get _filters => [
@@ -106,9 +108,13 @@ class _RecommendationContentState extends State<RecommendationContent> {
 
   @override
   Widget build(BuildContext context) {
+    final isOffline = ref.watch(networkProvider) == NetworkStatus.offline;
+
     return ValueListenableBuilder<bool>(
       valueListenable: DashboardContent.hasRiskDataNotifier,
       builder: (context, hasRiskData, child) {
+        final effectiveHasRiskData = hasRiskData && !isOffline;
+
         final selectedFilterLabel = _filters[_selectedFilterIndex]['label'] as String;
         final displayedTasks = selectedFilterLabel == 'Semua' 
             ? _tasks 
@@ -118,7 +124,7 @@ class _RecommendationContentState extends State<RecommendationContent> {
           backgroundColor: const Color(0xFFF8F9FB),
           body: Column(
             children: [
-              _buildHeader(hasRiskData),
+              _buildHeader(effectiveHasRiskData),
               _buildFilters(),
               Expanded(
                 child: CustomScrollView(

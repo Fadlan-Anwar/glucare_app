@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/api_config.dart';
 import 'auth_service.dart';
 import 'custom_user.dart';
 import '../../core/user_provider.dart';
@@ -69,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
         profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
             ? (userData['profile_image'].toString().startsWith('http')
                 ? userData['profile_image']
-                : 'http://10.0.2.2:5000${userData['profile_image']}')
+                : '${ApiConfig.baseUrl}${userData['profile_image']}')
             : null,
       );
       
@@ -117,18 +118,21 @@ class _LoginScreenState extends State<LoginScreen> {
         // Fetch full user data from REST API backend
         final userData = await authService.fetchUserData();
         
+        final gender = userData?['gender']?.toString().trim() ?? '';
+        final birthDate = userData?['birth_date']?.toString().trim() ?? '';
+
         // Update UserProvider with full info
         UserProvider.clearProfile();
         UserProvider.updateProfile(
           name: userData?['fullname'] ?? user.displayName ?? 'User',
           email: user.email,
-          gender: userData?['gender'] ?? '',
+          gender: gender,
           phone: userData?['phone'] ?? '',
-          birthDate: userData?['birth_date'] ?? '',
+          birthDate: birthDate,
           profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
               ? (userData['profile_image'].toString().startsWith('http')
                   ? userData['profile_image']
-                  : 'http://10.0.2.2:5000${userData['profile_image']}')
+                  : '${ApiConfig.baseUrl}${userData['profile_image']}')
               : null,
         );
 
@@ -144,7 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.pushReplacementNamed(context, '/dashboard');
+          
+          if (gender.isEmpty || birthDate.isEmpty) {
+            Navigator.pushReplacementNamed(context, '/complete-profile');
+          } else {
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          }
         }
       } else {
         // user canceled or failed
@@ -191,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
           profileImageUrl: userData?['profile_image'] != null && userData!['profile_image'].toString().isNotEmpty
               ? (userData['profile_image'].toString().startsWith('http')
                   ? userData['profile_image']
-                  : 'http://10.0.2.2:5000${userData['profile_image']}')
+                  : '${ApiConfig.baseUrl}${userData['profile_image']}')
               : null,
         );
 
@@ -413,7 +422,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ],
                                   ),
                                   TextButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/forgot-password');
+                                    },
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                       minimumSize: const Size(0, 0),
@@ -515,32 +526,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: _isLoading ? null : _handleFacebookLogin,
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        side: BorderSide(color: Colors.grey[300]!),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.facebook, color: Colors.blue[700], size: 22),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Facebook',
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.black87,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                  // Facebook button hidden for now
                                 ],
                               ),
                               const SizedBox(height: 40),

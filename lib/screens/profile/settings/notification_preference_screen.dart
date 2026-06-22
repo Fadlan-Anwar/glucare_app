@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../core/providers/notification_provider.dart';
 
-class NotificationPreferenceScreen extends StatefulWidget {
+class NotificationPreferenceScreen extends ConsumerWidget {
   const NotificationPreferenceScreen({super.key});
 
   @override
-  State<NotificationPreferenceScreen> createState() => _NotificationPreferenceScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDailyReminderOn = ref.watch(dailyReminderProvider);
 
-class _NotificationPreferenceScreenState extends State<NotificationPreferenceScreen> {
-  bool _mealReminders = true;
-  bool _medicationAlerts = true;
-  bool _dailyTips = true;
-  bool _weeklyReports = true;
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -59,56 +54,19 @@ class _NotificationPreferenceScreenState extends State<NotificationPreferenceScr
               child: Column(
                 children: [
                   _buildItem(
-                    title: "Pengingat Makan",
+                    title: "Pengingat Target Harian",
                     trailing: Switch(
-                      value: _mealReminders,
+                      value: isDailyReminderOn,
                       activeThumbColor: Colors.white,
                       activeTrackColor: const Color(0xFF007BFF),
-                      onChanged: (v) => setState(() => _mealReminders = v),
-                    ),
-                    showBorder: true,
-                  ),
-                  _buildItem(
-                    title: "Peringatan Konsumsi Obat",
-                    trailing: Switch(
-                      value: _medicationAlerts,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: const Color(0xFF007BFF),
-                      onChanged: (v) => setState(() => _medicationAlerts = v),
-                    ),
-                    showBorder: _medicationAlerts || _dailyTips || _weeklyReports,
-                  ),
-                  if (_medicationAlerts)
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1.5)),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildTimeBadge("08:00 WIB"),
-                          const SizedBox(width: 8),
-                          _buildTimeBadge("20:00 WIB"),
-                        ],
-                      ),
-                    ),
-                  _buildItem(
-                    title: "Tips Kesehatan Harian",
-                    trailing: Switch(
-                      value: _dailyTips,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: const Color(0xFF007BFF),
-                      onChanged: (v) => setState(() => _dailyTips = v),
-                    ),
-                    showBorder: true,
-                  ),
-                  _buildItem(
-                    title: "Laporan Mingguan",
-                    trailing: Switch(
-                      value: _weeklyReports,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: const Color(0xFF007BFF),
-                      onChanged: (v) => setState(() => _weeklyReports = v),
+                      onChanged: (val) async {
+                        await ref.read(dailyReminderProvider.notifier).toggle(val);
+                        if (val) {
+                          await NotificationService().scheduleDailyReminder();
+                        } else {
+                          await NotificationService().cancelDailyReminder();
+                        }
+                      },
                     ),
                     showBorder: false,
                   ),

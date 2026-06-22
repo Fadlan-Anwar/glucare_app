@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../core/constants/api_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_service.dart';
 import 'custom_user.dart';
@@ -52,14 +53,12 @@ final userProfileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
     final userData = await authService.fetchUserData();
     
     if (userData != null) {
-      // Prepend host URL dynamically depending on platform
-      final host = kIsWeb ? 'http://localhost:5000' : 'http://10.0.2.2:5000';
       final imagePath = userData['profile_image'];
       String? profileImageUrl;
       if (imagePath != null && imagePath.toString().isNotEmpty) {
         profileImageUrl = imagePath.toString().startsWith('http')
             ? imagePath.toString()
-            : '$host$imagePath';
+            : '${ApiConfig.baseUrl}$imagePath';
       }
       
       UserProvider.updateProfile(
@@ -103,11 +102,10 @@ final latestLabResultProvider = FutureProvider<Map<String, dynamic>?>((ref) asyn
   }
 });
 
-// Provider untuk mendapatkan assessment/analisis terbaru (baik lab maupun kuesioner)
+// Provider untuk mendapatkan assessment/analisis terbaru
 final latestAnalysisProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
   final authState = ref.watch(authStateChangesProvider).value;
   if (authState == null) {
-    // Clear static notifiers immediately on logout
     DashboardContent.clearAnalysisData();
     return null;
   }
@@ -115,45 +113,34 @@ final latestAnalysisProvider = FutureProvider<Map<String, dynamic>?>((ref) async
   try {
     final authService = ref.watch(authServiceProvider);
     
-    // Fetch both asynchronously
-    final results = await Future.wait([
-      authService.fetchLatestLabData(),
-      authService.fetchLatestKuesionerData(),
-    ]);
+    // Only fetch AI Result since analysis_results is the single source of truth (just like website)
+    final aiResultData = await authService.fetchAiResult();
     
-    final labData = results[0];
-    final kuesionerData = results[1];
-    
-    if (labData == null && kuesionerData == null) {
+    if (aiResultData == null) {
       DashboardContent.clearAnalysisData();
       return null;
     }
     
-    if (labData != null && kuesionerData == null) {
-      return {'type': 'lab', 'data': labData};
+    final String mode = aiResultData['mode'] ?? 'kuesioner';
+    final String baseType = mode == 'clinical' ? 'lab' : 'kuesioner';
+    
+    Map<String, dynamic>? baseData;
+    if (baseType == 'lab') {
+      baseData = aiResultData['clinicalParams'] ?? aiResultData['data'];
+    } else {
+      baseData = aiResultData['answers'] ?? aiResultData['data'];
     }
     
-    if (kuesionerData != null && labData == null) {
-      return {'type': 'kuesioner', 'data': kuesionerData};
+    if (baseData == null) {
+      // Fallback
+      baseData = {};
     }
-    
-    // Both are not null, compare created_at timestamp
-    final labTimeStr = labData!['created_at'];
-    final kuesionerTimeStr = kuesionerData!['created_at'];
-    
-    if (labTimeStr != null && kuesionerTimeStr != null) {
-      final labTime = DateTime.parse(labTimeStr);
-      final kuesionerTime = DateTime.parse(kuesionerTimeStr);
-      
-      if (labTime.isAfter(kuesionerTime)) {
-        return {'type': 'lab', 'data': labData};
-      } else {
-        return {'type': 'kuesioner', 'data': kuesionerData};
-      }
-    }
-    
-    // Fallback to labData if timestamps are missing
-    return {'type': 'lab', 'data': labData};
+
+    return {
+      'type': baseType, 
+      'data': baseData,
+      'ai_result': aiResultData,
+    };
   } catch (e) {
     debugPrint("Error fetching latest analysis: $e");
     DashboardContent.clearAnalysisData();

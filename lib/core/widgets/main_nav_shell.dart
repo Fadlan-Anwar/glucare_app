@@ -5,6 +5,8 @@ import '../../screens/analysis/analysis_screen.dart';
 import '../../screens/recommendation/recommendation_screen.dart';
 import '../../screens/progress/progress_screen.dart';
 import '../../screens/profile/profile_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/notification_service.dart';
 
 /// Shell navigasi utama yang membungkus 5 tab utama.
 /// Menggunakan IndexedStack agar state setiap tab dipertahankan
@@ -24,6 +26,16 @@ class _MainNavShellState extends State<MainNavShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _checkInactivityReminder();
+  }
+
+  Future<void> _checkInactivityReminder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isOn = prefs.getBool('is_daily_reminder_on') ?? false;
+    if (isOn) {
+      await NotificationService().cancelDailyReminder();
+      await NotificationService().scheduleDailyReminder();
+    }
   }
 
   // Daftar 5 halaman tab utama

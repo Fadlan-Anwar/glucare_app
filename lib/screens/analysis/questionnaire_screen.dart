@@ -14,36 +14,20 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
   final List<_Question> _questions = [
     _Question(
-      question: "Usia Anda saat ini?",
-      options: ["20-29 Tahun", "30-39 Tahun", "40+ Tahun"],
+      question: "Bagaimana kategori BMI Anda?",
+      options: ["Normal", "Overweight", "Obesitas"],
     ),
     _Question(
-      question: "Ada anggota keluarga dengan diabetes?",
-      options: ["Ada", "Tidak ada", "Tidak Tahu"],
+      question: "Bagaimana kondisi lingkar pinggang Anda?",
+      options: ["Normal", "Berisiko"],
     ),
     _Question(
-      question: "Seberapa sering Anda berolahraga per minggu?",
-      options: ["Tidak pernah", "1-2 kali", "3+ kali"],
+      question: "Apakah Anda memiliki hipertensi?",
+      options: ["Ya", "Tidak"],
     ),
     _Question(
-      question: "Seberapa sering konsumsi minuman manis atau makanan olahan?",
-      options: ["Setiap hari", "Beberapa kali dalam seminggu", "Sangat jarang"],
-    ),
-    _Question(
-      question: "Bagaimana ukuran lingkar pinggang Anda?",
-      options: ["Normal", "Agak Besar", "Besar (Gemuk perut)"],
-    ),
-    _Question(
-      question: "Apakah Anda sering haus berlebih, sering buang air kecil, dan mudah lelah?",
-      options: ["Iya", "Tidak terlalu", "Tidak sama sekali"],
-    ),
-    _Question(
-      question: "Berapa jam Anda tidur per-malam?",
-      options: ["<5 jam", "5-6 jam", "7-8 jam"],
-    ),
-    _Question(
-      question: "Bagaimana tingkat stress harian Anda?",
-      options: ["Tinggi", "Sedang", "Rendah"],
+      question: "Apakah Anda pernah memiliki riwayat kelebihan berat badan?",
+      options: ["Ya", "Tidak"],
     ),
   ];
 
@@ -81,15 +65,20 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         curve: Curves.easeInOut,
       );
     } else {
+      final bmiText = _questions[0].options[_selectedAnswers[0]];
+      final waistText = _questions[1].options[_selectedAnswers[1]];
+      final hyperText = _questions[2].options[_selectedAnswers[2]];
+      final overweightText = _questions[3].options[_selectedAnswers[3]];
+
       Navigator.pushNamed(
         context, 
         '/analysis-result',
         arguments: {
           'isKuesioner': true,
-          'answers': List.generate(
-            _questions.length, 
-            (i) => _questions[i].options[_selectedAnswers[i]]
-          ),
+          'bmi_category': bmiText == "Normal" ? 0 : (bmiText == "Overweight" ? 1 : 2),
+          'waist_category': waistText == "Normal" ? 0 : 1,
+          'hypertension': hyperText == "Ya" ? 1 : 0,
+          'overweight_history': overweightText == "Ya" ? 1 : 0,
         },
       );
     }
